@@ -206,6 +206,14 @@ function initDraggableMain(main, single) {
                     allPages[currentTab].blocks[this.dataset.hash].rect = getRectWithOffset(this);
                 });
             }
+
+            if (allPages[currentTab].frames) {
+                _.keys(allPages[currentTab].frames).forEach(function (fId) {
+                    if (allPages[currentTab].frames[fId].blockHashes.includes(hash)) {
+                        updateFrameBounds(fId, currentTab);
+                    }
+                });
+            }
         }
     }).resizable({
         grid: [10, 10],
@@ -372,11 +380,14 @@ function addSavedSoundBlock(hash, pageHash, blockSource) {
     const text = source.blocks[hash].text;
     const rect = source.blocks[hash].rect;
     const color = source.blocks[hash].color;
+    const bgColor = source.blocks[hash].bgColor || color;
+    const textColor = source.blocks[hash].textColor;
     const $mainSelector = $('.main[data-page="' + pageHash + '"]');
 
     const html = '<a class="button is-dark sound-block' +
         (blockSource ? ' ui-selected' : '') +
-        (color ? ' bg-' + color : '') +
+        (bgColor ? ' bg-' + bgColor : '') +
+        (textColor ? ' text-color-' + textColor : '') +
         '" data-hash="' + hash + '"><div class="sound-overlay"></div>' +
         '<div class="sound-text">' + text + '</div></a>';
 
@@ -694,6 +705,13 @@ function loadSavedPage(page, skipTab) {
         activePages[pageHash].list.reIndex();
     }
 
+    if (allPages[pageHash].frames) {
+        _.each(allPages[pageHash].frames, function (frame) {
+            renderSoundFrame(frame, pageHash);
+            updateFrameBounds(frame.id, pageHash);
+        });
+    }
+
     if (isEditMode) {
         initEditablePage(pageHash);
         initDraggableMain(pageHash);
@@ -847,6 +865,45 @@ function initNewPageBlocks(hash, isSaved) {
 
     $mainSelector.on('click', '.sound-block', function (e) {
         const hash = this.dataset.hash;
+        const $block = $(this);
+
+        if (isEditMode) {
+            if (e.altKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (selectedColor === undefined) {
+                    showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+                } else {
+                    const oldBg = allPages[currentTab].blocks[hash].bgColor || allPages[currentTab].blocks[hash].color;
+                    if (oldBg) {
+                        $block.removeClass('bg-' + oldBg);
+                    }
+
+                    allPages[currentTab].blocks[hash].bgColor = selectedColor;
+                    $block.addClass('bg-' + selectedColor);
+                }
+
+                return;
+            }
+
+            if (e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (selectedColor === undefined) {
+                    showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+                } else {
+                    const oldText = allPages[currentTab].blocks[hash].textColor;
+                    if (oldText) {
+                        $block.removeClass('text-color-' + oldText);
+                    }
+
+                    allPages[currentTab].blocks[hash].textColor = selectedColor;
+                    $block.addClass('text-color-' + selectedColor);
+                }
+
+                return;
+            }
+        }
 
         if (!isEditMode && !e.ctrlKey) {
             if (!training.active) {
@@ -1440,7 +1497,7 @@ function startIntro() {
 
     const steps = [{
         title: 'Здравствуй, друг-пранкер! Пройдем обучение?',
-        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Нажми <b>Включить режим редактирования</b>, чтобы сразу создавать вкладки.<br><b>Поиск по звукам на рабочей области:</b> F2.<br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.<br><b>Повторить</b> обучение можно через меню <b>О программе</b>.',
+        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Нажми <b>Включить режим редактирования</b>, чтобы сразу создавать вкладки.<br><br><b>Быстрые подсказки:</b><br>• <b>Поиск:</b> F2 — открыть/закрыть поиск по звукам страницы.<br>• <b>Рамки:</b> В режиме редактирования выделите несколько звуков и нажмите «Рамка», чтобы объединить их.<br>• <b>Цвета:</b> Alt + ЛКМ — цвет фона, Ctrl + ЛКМ — цвет текста.<br>• <b>Интерфейс:</b> Ctrl + Shift + F11 — сбросить все галочки скрытия.<br><br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.',
         classes: 'with-grinch',
         buttons: [
             {
@@ -2353,6 +2410,160 @@ function unselectBlocks() {
     $('.ui-selected').removeClass('ui-selected');
 }
 
+const colorHexMap = {
+    yellow: '#fbc02d',
+    amber: '#ffb300',
+    orange: '#f57c00',
+    'deep-orange': '#ff5722',
+    red: '#e53935',
+    pink: '#d81b60',
+    purple: '#8e24aa',
+    'deep-purple': '#5e35b1',
+    indigo: '#3949ab',
+    blue: '#1e88e5',
+    'light-blue': '#039be5',
+    cyan: '#00acc1',
+    teal: '#00897b',
+    green: '#43a047',
+    'light-green': '#7cb342',
+    lime: '#c0ca33',
+    brown: '#6d4c41',
+    'light-brown': '#8d6e63',
+    grey: '#b0bec5',
+    black: '#121212',
+    white: '#ffffff',
+    default: '#3498db'
+};
+
+// Render frame element on page
+function renderSoundFrame(frame, pageHash) {
+    const selector = '.main[data-page="' + pageHash + '"]';
+    const borderColor = colorHexMap[frame.borderColor] || frame.borderColor || '#3498db';
+    const frameBg = frame.bgColor === 'transparent' ? 'transparent' : (colorHexMap[frame.bgColor] || frame.bgColor || 'rgba(52, 152, 219, 0.08)');
+    const textColor = colorHexMap[frame.textColor] || frame.textColor || '#ffffff';
+
+    const frameStyle = 'top:' + frame.rect.top + 'px; left:' + frame.rect.left + 'px; width:' + frame.rect.width + 'px; height:' + frame.rect.height + 'px; border-color:' + borderColor + '; background-color:' + frameBg + ';';
+    const titleStyle = 'border-color:' + borderColor + '; color:' + textColor + ';';
+
+    const html = '<div class="sound-frame" data-id="' + frame.id + '" style="' + frameStyle + '">' +
+        '<div class="sound-frame-title" style="' + titleStyle + '">' +
+        '<span class="title-text" title="Двойной клик для переименования">' + frame.title + '</span>' +
+        '<button class="button is-small delete-frame-btn" title="Удалить рамку"><i class="fa fa-times"></i></button>' +
+        '</div></div>';
+
+    $(html).appendTo(selector);
+}
+
+// Recalculate frame bounds around its blocks
+function updateFrameBounds(frameId, pageHash) {
+    const page = pageHash || currentTab;
+    if (!allPages[page] || !allPages[page].frames || !allPages[page].frames[frameId]) {
+        return;
+    }
+
+    const frame = allPages[page].frames[frameId];
+    if (!frame.blockHashes || frame.blockHashes.length === 0) {
+        return;
+    }
+
+    let minLeft = Infinity;
+    let minTop = Infinity;
+    let maxRight = -Infinity;
+    let maxBottom = -Infinity;
+
+    frame.blockHashes.forEach(function (hash) {
+        const $el = $('.main[data-page="' + page + '"] .sound-block[data-hash="' + hash + '"]');
+        if ($el.length > 0) {
+            const pos = $el.position();
+            const w = $el.outerWidth();
+            const h = $el.outerHeight();
+            minLeft = Math.min(minLeft, pos.left);
+            minTop = Math.min(minTop, pos.top);
+            maxRight = Math.max(maxRight, pos.left + w);
+            maxBottom = Math.max(maxBottom, pos.top + h);
+        } else if (allPages[page].blocks[hash] && allPages[page].blocks[hash].rect) {
+            const r = allPages[page].blocks[hash].rect;
+            minLeft = Math.min(minLeft, r.left);
+            minTop = Math.min(minTop, r.top);
+            maxRight = Math.max(maxRight, r.right || (r.left + r.width));
+            maxBottom = Math.max(maxBottom, r.bottom || (r.top + r.height));
+        }
+    });
+
+    if (minLeft !== Infinity) {
+        frame.rect = {
+            left: Math.max(0, minLeft - 6),
+            top: Math.max(0, minTop - 6),
+            width: (maxRight - minLeft) + 12,
+            height: (maxBottom - minTop) + 12
+        };
+
+        const $element = $('.main[data-page="' + page + '"] .sound-frame[data-id="' + frameId + '"]');
+        $element.css({
+            top: frame.rect.top,
+            left: frame.rect.left,
+            width: frame.rect.width,
+            height: frame.rect.height
+        });
+    }
+}
+
+// Create new frame around currently selected blocks
+function createFrameFromSelected() {
+    if (!isEditMode || !currentTab || !allPages[currentTab]) {
+        showNotification('Перейдите в режим редактирования (Пробел)', true, 2000);
+        return;
+    }
+
+    const $selected = $main.find('.sound-block.ui-selected');
+    if ($selected.length === 0) {
+        showNotification('Выделите звуки мышью на рабочей области, затем нажмите «Рамка»', true, 3000);
+        return;
+    }
+
+    let title = 'Приветствие';
+    try {
+        // eslint-disable-next-line no-alert
+        const res = window.prompt('Введите название группы / рамки:', 'Приветствие');
+        if (res === null) {
+            return;
+        }
+
+        if (res.trim().length > 0) {
+            title = res.trim();
+        }
+    } catch (e) {
+        title = 'Приветствие';
+    }
+
+    const blockHashes = [];
+    $selected.each(function () {
+        blockHashes.push(this.dataset.hash);
+    });
+
+    if (!allPages[currentTab].frames) {
+        allPages[currentTab].frames = {};
+    }
+
+    const frameId = 'frame_' + getRandomString(6);
+    const frame = {
+        id: frameId,
+        title: title,
+        borderColor: selectedColor || 'blue',
+        bgColor: 'transparent',
+        textColor: 'white',
+        rect: {left: 0, top: 0, width: 100, height: 100},
+        blockHashes: blockHashes
+    };
+
+    allPages[currentTab].frames[frameId] = frame;
+    renderSoundFrame(frame, currentTab);
+    updateFrameBounds(frameId, currentTab);
+    unselectBlocks();
+
+    showNotification('Создана рамка «<b>' + frame.title + '</b>»', false, 2000);
+}
+
 // Reapply search highlight on work area sound blocks
 function applyWorkAreaSearch() {
     if ($quickSearch && $quickSearch.hasClass('active')) {
@@ -3249,6 +3460,80 @@ $(function () {
         $('#help').addClass('is-active');
     }).on('click', '.show-info', function () {
         $('#info').addClass('is-active');
+    }).on('click', '#create-frame', function () {
+        createFrameFromSelected();
+    }).on('click', '.sound-frame', function (e) {
+        if (!isEditMode) {
+            return;
+        }
+
+        const frameId = $(this).data('id');
+        const frame = allPages[currentTab] && allPages[currentTab].frames && allPages[currentTab].frames[frameId];
+        if (!frame) {
+            return;
+        }
+
+        if (e.altKey) {
+            e.stopPropagation();
+            if (selectedColor === undefined) {
+                showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+            } else {
+                frame.bgColor = selectedColor;
+                const frameBg = colorHexMap[selectedColor] || selectedColor;
+                $(this).css('background-color', frameBg);
+                showNotification('Цвет фона рамки изменён', false, 1500);
+            }
+
+            return;
+        }
+
+        if (e.ctrlKey) {
+            e.stopPropagation();
+            if (selectedColor === undefined) {
+                showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+            } else {
+                frame.textColor = selectedColor;
+                const textColor = colorHexMap[selectedColor] || selectedColor;
+                $(this).find('.sound-frame-title').css('color', textColor);
+                showNotification('Цвет текста подписи изменён', false, 1500);
+            }
+
+            return;
+        }
+
+        if (selectedColor !== undefined) {
+            e.stopPropagation();
+            frame.borderColor = selectedColor;
+            const borderColor = colorHexMap[selectedColor] || selectedColor;
+            $(this).css('border-color', borderColor);
+            $(this).find('.sound-frame-title').css('border-color', borderColor);
+            showNotification('Цвет границы рамки изменён', false, 1500);
+        }
+    }).on('click', '.delete-frame-btn', function (e) {
+        e.stopPropagation();
+        const $frame = $(this).closest('.sound-frame');
+        const frameId = $frame.data('id');
+        $frame.remove();
+        if (allPages[currentTab] && allPages[currentTab].frames) {
+            delete allPages[currentTab].frames[frameId];
+        }
+
+        showNotification('Рамка удалена', false, 1500);
+    }).on('dblclick', '.sound-frame-title .title-text', function (e) {
+        e.stopPropagation();
+        const $textSpan = $(this);
+        const $frame = $textSpan.closest('.sound-frame');
+        const frameId = $frame.data('id');
+        const oldTitle = $textSpan.text();
+        // eslint-disable-next-line no-alert
+        const newTitle = window.prompt('Изменить название группы / рамки:', oldTitle);
+
+        if (newTitle && newTitle.trim().length > 0 && newTitle.trim() !== oldTitle) {
+            $textSpan.text(newTitle.trim());
+            if (allPages[currentTab] && allPages[currentTab].frames && allPages[currentTab].frames[frameId]) {
+                allPages[currentTab].frames[frameId].title = newTitle.trim();
+            }
+        }
     }).on('click', '.start-intro', function () {
         startIntro();
     }).on('click', '.youtube', function () {
@@ -3745,8 +4030,8 @@ $(function () {
         }
     });
 
-    // Exit Zen Mode and reset all hide toggles hotkey
-    addHotkey('ctrl+shift+f11', function () {
+    // Emergency interface reset hotkey (Ctrl + Shift + F12)
+    addHotkey('ctrl+shift+f12', function () {
         config.set('zenMode', false);
         config.set('hideProjects', false);
         config.set('hidePages', false);
@@ -3754,7 +4039,13 @@ $(function () {
         config.set('hideEditPanel', false);
         config.set('hideTabs', false);
         updateUIVisibility();
-        showNotification('Все настройки скрытия сброшены (Ctrl+Shift+F11)', false, 2000);
+
+        const $panel = $('.settings-panel');
+        if ($panel.length > 0) {
+            $panel.find('.toggle-ui .fa').removeClass('fa-check-square-o').addClass('fa-square-o');
+        }
+
+        showNotification('Все настройки скрытия выключены (Ctrl+Shift+F12)', false, 2000);
     });
 
     // Toggle left sidebar
