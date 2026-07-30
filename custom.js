@@ -1439,9 +1439,20 @@ function startIntro() {
 
     const steps = [{
         title: 'Здравствуй, друг-пранкер! Пройдем обучение?',
-        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.<br><b>Повторить</b> обучение можно через меню <b>О программе</b>.',
+        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Нажми <b>Включить режим редактирования</b>, чтобы сразу создавать вкладки.<br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.<br><b>Повторить</b> обучение можно через меню <b>О программе</b>.',
         classes: 'with-grinch',
         buttons: [
+            {
+                action: function () {
+                    if (!isEditMode) {
+                        toggleEditMode();
+                    }
+
+                    showNotification('Режим редактирования включен', false, 2000);
+                },
+                classes: 'button is-warning',
+                text: 'Включить режим редактирования'
+            },
             {
                 action: function () {
                     config.set('tutorial', true);
@@ -3714,6 +3725,15 @@ $(function () {
         if (isEditMode) {
             applySelectedBlockColor();
         }
+    });
+
+    // Exit Zen Mode hotkey
+    addHotkey('ctrl+shift+f11', function () {
+        config.set('zenMode', false);
+        config.set('hideProjects', false);
+        config.set('hidePages', false);
+        updateUIVisibility();
+        showNotification('Интерфейс восстановлен (Ctrl+Shift+F11)', false, 2000);
     });
 
     // Toggle left sidebar

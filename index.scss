@@ -544,6 +544,26 @@ input[type='number']::-webkit-outer-spin-button {
     height: 100%;
 }
 
+.zen-mode-hint {
+    display: none;
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    z-index: 4000;
+    padding: 6px 12px;
+    background: rgba($grey-darker, 0.85);
+    color: $grey-lighter;
+    border: 1px solid rgba($white, 0.2);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    pointer-events: none;
+    user-select: none;
+}
+
+.zen-mode .zen-mode-hint {
+    display: block;
+}
+
 .wrapper {
     & {
         position: relative;
