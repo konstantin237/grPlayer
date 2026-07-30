@@ -2553,22 +2553,200 @@ window.addEventListener('keydown', function (e) {
     }
 }, true);
 
+
+function askFrameTitle(callback) {
+    let $modal = $('#frame-title-modal');
+
+    if ($modal.length === 0) {
+        $('body').append(
+            '<div id="frame-title-modal" style="' +
+            'position:fixed;' +
+            'left:0;top:0;right:0;bottom:0;' +
+            'background:rgba(0,0,0,.55);' +
+            'z-index:999999;' +
+            'display:flex;' +
+            'align-items:center;' +
+            'justify-content:center;">' +
+
+                '<div style="' +
+                'background:#2d2d2d;' +
+                'padding:20px;' +
+                'border-radius:6px;' +
+                'width:420px;">' +
+
+                    '<h3 style="margin:0 0 12px;color:white;">Название рамки</h3>' +
+
+                    '<input id="frame-title-input" type="text" style="' +
+                    'width:100%;padding:8px;font-size:16px;">' +
+
+                    '<div style="margin-top:15px;text-align:right;">' +
+                        '<button id="frame-title-cancel" class="button">Отмена</button> ' +
+                        '<button id="frame-title-ok" class="button is-info">Создать</button>' +
+                    '</div>' +
+
+                '</div>' +
+            '</div>'
+        );
+
+        $modal = $('#frame-title-modal');
+    }
+
+    $('#frame-title-input').val('');
+
+    $modal.show();
+
+    setTimeout(function () {
+        $('#frame-title-input').focus();
+    }, 20);
+
+    function close(value) {
+        $modal.hide();
+
+        $('#frame-title-ok').off('click');
+        $('#frame-title-cancel').off('click');
+        $('#frame-title-input').off('keydown');
+
+        callback(value);
+    }
+
+    $('#frame-title-ok').on('click', function () {
+        close($('#frame-title-input').val());
+    });
+
+    $('#frame-title-cancel').on('click', function () {
+        close(null);
+    });
+
+    $('#frame-title-input').on('keydown', function (e) {
+        if (e.which === 13) {
+            close($(this).val());
+        }
+
+        if (e.which === 27) {
+            close(null);
+        }
+    });
+}
+
+
 // Create new frame around currently selected blocks
 function createFrameFromSelected() {
+
+    console.log('CREATE FRAME BUTTON WORKS');
+
     if (!isEditMode || !currentTab || !allPages[currentTab]) {
         showNotification('Перейдите в режим редактирования (Пробел)', true, 2000);
         return;
     }
 
     const $selected = $main.find('.sound-block.ui-selected');
+
     if ($selected.length === 0) {
-        showNotification('Выделите звуки мышью на рабочей области, затем нажмите «Рамка»', true, 3000);
+        showNotification(
+            'Выделите звуки мышью на рабочей области, затем нажмите «Рамка»',
+            true,
+            3000
+        );
         return;
     }
 
-    const $modal = $('#frame-create');
-    $modal.find('.frame-title-input').val('');
-    $modal.addClass('is-active').find('.frame-title-input').focus();
+    askFrameTitle(function (title) {
+
+        if (title === null) {
+            return;
+        }
+
+        const cleanTitle = title.trim();
+
+        if (!cleanTitle.length) {
+            showNotification('Введите название рамки', true, 2000);
+            return;
+        }
+
+        const blockHashes = $selected.map(function () {
+            return this.dataset.hash;
+        }).get();
+
+        if (blockHashes.length === 0) {
+            return;
+        }
+
+        let minLeft = Infinity;
+        let minTop = Infinity;
+        let maxRight = -Infinity;
+        let maxBottom = -Infinity;
+
+        $selected.each(function () {
+
+            const $element = $(this);
+
+            const pos = $element.position();
+
+            const width = $element.outerWidth();
+            const height = $element.outerHeight();
+
+            minLeft = Math.min(minLeft, pos.left);
+            minTop = Math.min(minTop, pos.top);
+            maxRight = Math.max(maxRight, pos.left + width);
+            maxBottom = Math.max(maxBottom, pos.top + height);
+
+        });
+
+        if (!isFinite(minLeft) ||
+            !isFinite(minTop) ||
+            !isFinite(maxRight) ||
+            !isFinite(maxBottom)) {
+
+            showNotification(
+                'Не удалось определить положение выбранных звуков',
+                true,
+                2000
+            );
+
+            return;
+        }
+
+        const padding = 6;
+
+        const frame = {
+            id: 'frame-' + getRandomString(10),
+
+            title: cleanTitle,
+
+            blockHashes: blockHashes,
+
+            rect: {
+                left: Math.max(0, minLeft - padding),
+                top: Math.max(0, minTop - padding),
+                width: (maxRight - minLeft) + padding * 2,
+                height: (maxBottom - minTop) + padding * 2
+            },
+
+            borderColor: 'default',
+
+            bgColor: 'transparent',
+
+            textColor: 'white'
+        };
+
+        if (!allPages[currentTab].frames) {
+            allPages[currentTab].frames = {};
+        }
+
+        allPages[currentTab].frames[frame.id] = frame;
+
+        renderSoundFrame(frame, currentTab);
+
+        saveAllData(true);
+
+        showNotification(
+            'Рамка «' + cleanTitle + '» создана',
+            false,
+            2000
+        );
+
+    });
+
 }
 
 // Reapply search highlight on work area sound blocks
