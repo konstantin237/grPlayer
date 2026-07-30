@@ -10,6 +10,7 @@ module.exports = new Store({
         hideDeck: false,
         hideEditPanel: false,
         hideTabs: false,
-        zenMode: false
+        zenMode: false,
+        theme: 'dark'
     }
 });

@@ -10337,6 +10337,65 @@ body,
 .modal-card-body {
   background-color: #000000 !important; }
 
+body.theme-light,
+body.theme-light .layout,
+body.theme-light .panel,
+body.theme-light .panel.navigator,
+body.theme-light .panel.deck,
+body.theme-light .settings-panel,
+body.theme-light .about-panel,
+body.theme-light .modal-card-head,
+body.theme-light .modal-card-body {
+  background-color: #f4f6f9 !important;
+  color: #212529 !important; }
+
+body.theme-light .panel {
+  border-color: #dcdfe6; }
+  body.theme-light .panel .panel-heading {
+    background-color: #e4e7ed !important;
+    color: #212529 !important;
+    border-color: #dcdfe6; }
+  body.theme-light .panel .panel-block {
+    background-color: #f4f6f9 !important;
+    color: #212529 !important;
+    border-color: #e4e7ed; }
+    body.theme-light .panel .panel-block.is-active {
+      background-color: #dcdfe6 !important;
+      color: #000000 !important; }
+  body.theme-light .panel .panel-search .input,
+  body.theme-light .panel .panel-search .button {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border-color: #dcdfe6 !important; }
+
+body.theme-light .tabs.is-toggle {
+  box-shadow: inset 1px 0 0 1px #dcdfe6; }
+  body.theme-light .tabs.is-toggle .link {
+    color: #212529 !important; }
+  body.theme-light .tabs.is-toggle .is-active .link {
+    border-bottom-color: #3498db; }
+
+body.theme-light .mode-indicator {
+  background-color: #ED8E3B !important;
+  color: #ffffff !important; }
+
+body.theme-light.has-bottom .main {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px); }
+
+body.theme-light .zen-mode-hint {
+  background: rgba(255, 255, 255, 0.9);
+  color: #212529;
+  border-color: rgba(0, 0, 0, 0.2); }
+
+body.theme-light .modal-card-title,
+body.theme-light .content h2, body.theme-light .content h3, body.theme-light .content h4,
+body.theme-light .content p, body.theme-light .content li, body.theme-light .content span {
+  color: #212529 !important; }
+
+body.theme-light .shepherd-element .shepherd-content {
+  background: #ffffff !important;
+  color: #212529 !important; }
+
 .panel {
   width: 250px;
   background-color: #000000;

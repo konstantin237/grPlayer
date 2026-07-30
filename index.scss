@@ -861,6 +861,88 @@ body,
     background-color: #000000 !important;
 }
 
+body.theme-light {
+    &,
+    .layout,
+    .panel,
+    .panel.navigator,
+    .panel.deck,
+    .settings-panel,
+    .about-panel,
+    .modal-card-head,
+    .modal-card-body {
+        background-color: #f4f6f9 !important;
+        color: #212529 !important;
+    }
+
+    .panel {
+        border-color: #dcdfe6;
+
+        .panel-heading {
+            background-color: #e4e7ed !important;
+            color: #212529 !important;
+            border-color: #dcdfe6;
+        }
+
+        .panel-block {
+            background-color: #f4f6f9 !important;
+            color: #212529 !important;
+            border-color: #e4e7ed;
+
+            &.is-active {
+                background-color: #dcdfe6 !important;
+                color: #000000 !important;
+            }
+        }
+
+        .panel-search .input,
+        .panel-search .button {
+            background-color: #ffffff !important;
+            color: #212529 !important;
+            border-color: #dcdfe6 !important;
+        }
+    }
+
+    .tabs.is-toggle {
+        box-shadow: inset 1px 0 0 1px #dcdfe6;
+
+        .link {
+            color: #212529 !important;
+        }
+
+        .is-active .link {
+            border-bottom-color: #3498db;
+        }
+    }
+
+    .mode-indicator {
+        background-color: #ED8E3B !important;
+        color: #ffffff !important;
+    }
+
+    &.has-bottom .main {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+    }
+
+    .zen-mode-hint {
+        background: rgba(#ffffff, 0.9);
+        color: #212529;
+        border-color: rgba(#000000, 0.2);
+    }
+
+    .modal-card-title,
+    .content h2, .content h3, .content h4,
+    .content p, .content li, .content span {
+        color: #212529 !important;
+    }
+
+    .shepherd-element .shepherd-content {
+        background: #ffffff !important;
+        color: #212529 !important;
+    }
+}
+
 .panel {
     & {
         width: 250px;

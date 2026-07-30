@@ -65,7 +65,7 @@
 
     <div class="wrapper">
         <div class="notification is-success"></div>
-        <div class="zen-mode-hint">Для возврата интерфейса нажмите <b>Ctrl + Shift + F12</b></div>
+        <div class="zen-mode-hint">Для возврата интерфейса нажмите <b>Ctrl + Shift + F11</b></div>
 
         <div class="tabs is-toggle drag" id="tabs">
             <ul></ul>
@@ -248,7 +248,7 @@
                     <li><b>Ctrl+W</b> — закрыть текущую вкладку
                     <li><b>Ctrl+Alt+W</b> — закрыть все вкладки (и снять выделение с проекта)
                     <li><b>F2</b> или <b>Ctrl+F</b> — быстрый поиск блока на текущей странице (жёлтая рамка)
-                    <li><b>Ctrl+Shift+F12</b> — сбросить все настройки скрытия интерфейса
+                    <li><b>Ctrl+Shift+F11</b> — сбросить все настройки скрытия интерфейса
                     <li><b>Правая</b> кнопка на странице (нажать) — пауза или продолжение воспроизведения звука</li>
                     <li><b>Левая</b> кнопка в навигаторе страниц (зажать и перенести на вкладки) — открыть страницу
                     <li><b>Левая</b> кнопка в навигаторе (<b>двойной клик</b>) — открыть страницу или проект</li>
@@ -291,6 +291,28 @@
                     <li><b>Выделить</b> файлы/папки в проводнике</li>
                     <li><b>Перенести</b> их в окно плеера в область <b>колоды</b> (правой панели)</li>
                 </ol>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="modal no-drag" id="frame-create">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Название рамки</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input is-large frame-title-input" type="text" placeholder="Введите название (напр. Приветствие)">
+                </div>
+                <div class="control">
+                    <button class="button is-large is-primary btn-confirm-frame">
+                        Создать
+                    </button>
+                </div>
             </div>
         </section>
     </div>

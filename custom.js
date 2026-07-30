@@ -579,21 +579,33 @@ function saveAllData(skipNotify) {
 
     activeTabs.forEach(function (hash) {
         const selector = '[data-page="' + hash + '"]';
-        const mainHtml = document.querySelector('.main' + selector).outerHTML
-            // Filter jQuery UI classes
-            .replace(/ui[-\w]+\s*/g, '')
-            // Filter is-searched and is-found classes for quick search
-            .replace(/is-\w+\s*/g, '')
-            // Filter info gradients
-            .replace(/background-image[^;]+;/g, '')
-            // Filter random empty block
-            .replace(/<div class="".+?<\/div>/g, '');
+        const $mainElem = $('.main' + selector);
 
-        if (_.size(activePages) > 0) {
-            activePages[hash].store.set({
-                name: allPages[hash].name,
-                main: mainHtml
-            });
+        if ($mainElem.length > 0) {
+            // Strip sound frames before saving mainHtml so cached HTML string stays clean
+            $mainElem.find('.sound-frame').remove();
+
+            const mainHtml = $mainElem[0].outerHTML
+                .replace(/ui[-\w]+\s*/g, '')
+                .replace(/is-\w+\s*/g, '')
+                .replace(/background-image[^;]+;/g, '')
+                .replace(/<div class="".+?<\/div>/g, '');
+
+            if (_.size(activePages) > 0) {
+                activePages[hash].store.set({
+                    name: allPages[hash].name,
+                    main: mainHtml,
+                    frames: allPages[hash].frames || {}
+                });
+            }
+
+            // Re-render frames on page
+            if (allPages[hash].frames) {
+                _.each(allPages[hash].frames, function (frame) {
+                    renderSoundFrame(frame, hash);
+                    updateFrameBounds(frame.id, hash);
+                });
+            }
         }
     });
 
@@ -1425,6 +1437,12 @@ function applySelectedBlockColor() {
     } else {
         showNotification('Не выбраны блоки или цвет', true, 2000);
     }
+}
+
+// Update theme class on body
+function updateTheme() {
+    const theme = config.get('theme') || 'dark';
+    $('body').toggleClass('theme-light', theme === 'light').toggleClass('theme-dark', theme === 'dark');
 }
 
 // Import a saved page
@@ -2508,6 +2526,33 @@ function updateFrameBounds(frameId, pageHash) {
     }
 }
 
+// Reset all hide options to false
+function resetAllHideSettings() {
+    config.set('zenMode', false);
+    config.set('hideProjects', false);
+    config.set('hidePages', false);
+    config.set('hideDeck', false);
+    config.set('hideEditPanel', false);
+    config.set('hideTabs', false);
+    updateUIVisibility();
+
+    const $panel = $('.settings-panel');
+    if ($panel.length > 0) {
+        $panel.find('.toggle-ui .fa').removeClass('fa-check-square-o').addClass('fa-square-o');
+    }
+
+    showNotification('Все настройки скрытия выключены (Ctrl+Shift+F11)', false, 2000);
+}
+
+// Global capture phase keydown listener for emergency interface recovery
+window.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'F11' || e.key === 'F12' || e.keyCode === 122 || e.keyCode === 123)) {
+        e.preventDefault();
+        e.stopPropagation();
+        resetAllHideSettings();
+    }
+}, true);
+
 // Create new frame around currently selected blocks
 function createFrameFromSelected() {
     if (!isEditMode || !currentTab || !allPages[currentTab]) {
@@ -2521,47 +2566,9 @@ function createFrameFromSelected() {
         return;
     }
 
-    let title = 'Приветствие';
-    try {
-        // eslint-disable-next-line no-alert
-        const res = window.prompt('Введите название группы / рамки:', 'Приветствие');
-        if (res === null) {
-            return;
-        }
-
-        if (res.trim().length > 0) {
-            title = res.trim();
-        }
-    } catch (e) {
-        title = 'Приветствие';
-    }
-
-    const blockHashes = [];
-    $selected.each(function () {
-        blockHashes.push(this.dataset.hash);
-    });
-
-    if (!allPages[currentTab].frames) {
-        allPages[currentTab].frames = {};
-    }
-
-    const frameId = 'frame_' + getRandomString(6);
-    const frame = {
-        id: frameId,
-        title: title,
-        borderColor: selectedColor || 'blue',
-        bgColor: 'transparent',
-        textColor: 'white',
-        rect: {left: 0, top: 0, width: 100, height: 100},
-        blockHashes: blockHashes
-    };
-
-    allPages[currentTab].frames[frameId] = frame;
-    renderSoundFrame(frame, currentTab);
-    updateFrameBounds(frameId, currentTab);
-    unselectBlocks();
-
-    showNotification('Создана рамка «<b>' + frame.title + '</b>»', false, 2000);
+    const $modal = $('#frame-create');
+    $modal.find('.frame-title-input').val('');
+    $modal.addClass('is-active').find('.frame-title-input').focus();
 }
 
 // Reapply search highlight on work area sound blocks
@@ -2617,6 +2624,10 @@ function processJsonFiles(files, json) {
     }
 
     json = _.omit(filterBlocksWithoutPath(json), ['type']);
+
+    if (json.frames) {
+        allPages[json.hash].frames = json.frames;
+    }
 
     if (counter > 0) {
         addPageToDatabase(json);
@@ -2817,6 +2828,7 @@ $(function () {
     hp.Howler.volume(volume);
 
     function getSettingsMenuHtml() {
+        const theme = config.get('theme') || 'dark';
         return '<div class="panel settings-panel">' +
             '<div class="settings-main-view">' +
             '<p class="panel-heading">Настройки</p>' +
@@ -2838,6 +2850,15 @@ $(function () {
             '<a class="panel-block toggle-ui" data-type="hideEditPanel"><i class="fa ' + (config.get('hideEditPanel') ? 'fa-check-square-o' : 'fa-square-o') + '"></i> Скрыть редактирование</a>' +
             '<a class="panel-block toggle-ui" data-type="hideTabs"><i class="fa ' + (config.get('hideTabs') ? 'fa-check-square-o' : 'fa-square-o') + '"></i> Скрыть верхние вкладки</a>' +
             '<a class="panel-block toggle-ui" data-type="zenMode"><i class="fa ' + (config.get('zenMode') ? 'fa-check-square-o' : 'fa-square-o') + '"></i> Скрыть всё</a>' +
+            '<hr class="dropdown-divider" style="margin: 5px 0;">' +
+            '<div class="panel-block" style="justify-content: space-between;">' +
+            '<span><i class="fa fa-adjust"></i> Тема:</span>' +
+            '<div class="select is-small">' +
+            '<select id="theme-select">' +
+            '<option value="dark"' + (theme === 'dark' ? ' selected' : '') + '>Тёмная</option>' +
+            '<option value="light"' + (theme === 'light' ? ' selected' : '') + '>Светлая</option>' +
+            '</select>' +
+            '</div></div>' +
             '</div>' +
             '</div>';
     }
@@ -3059,8 +3080,9 @@ $(function () {
         }
     }, 200);
 
-    // Apply UI visibility settings on start
+    // Apply UI visibility and Theme settings on start
     updateUIVisibility();
+    updateTheme();
 
     // Add block from single or multiple files
     $('#add-sound').click(function () {
@@ -3454,6 +3476,12 @@ $(function () {
             const val = config.get(t) || false;
             $(this).find('.fa').toggleClass('fa-square-o', !val).toggleClass('fa-check-square-o', val);
         });
+    }).on('change', '#theme-select', function (e) {
+        e.stopPropagation();
+        const theme = $(this).val();
+        config.set('theme', theme);
+        updateTheme();
+        showNotification('Тема изменена: ' + (theme === 'light' ? 'Светлая' : 'Тёмная'), false, 1500);
     }).on('click', '.about-panel a.panel-block', function () {
         document.querySelector('#about')._tippy.hide();
     }).on('click', '.show-help', function () {
@@ -4030,23 +4058,9 @@ $(function () {
         }
     });
 
-    // Emergency interface reset hotkey (Ctrl + Shift + F12)
-    addHotkey('ctrl+shift+f12', function () {
-        config.set('zenMode', false);
-        config.set('hideProjects', false);
-        config.set('hidePages', false);
-        config.set('hideDeck', false);
-        config.set('hideEditPanel', false);
-        config.set('hideTabs', false);
-        updateUIVisibility();
-
-        const $panel = $('.settings-panel');
-        if ($panel.length > 0) {
-            $panel.find('.toggle-ui .fa').removeClass('fa-check-square-o').addClass('fa-square-o');
-        }
-
-        showNotification('Все настройки скрытия выключены (Ctrl+Shift+F12)', false, 2000);
-    });
+    // Emergency interface reset hotkeys (Ctrl + Shift + F11 and F12)
+    addHotkey('ctrl+shift+f11', resetAllHideSettings);
+    addHotkey('ctrl+shift+f12', resetAllHideSettings);
 
     // Toggle left sidebar
     addHotkey('ctrl+1', function () {
