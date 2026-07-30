@@ -720,7 +720,7 @@ function loadSavedPage(page, skipTab) {
     if (allPages[pageHash].frames) {
         _.each(allPages[pageHash].frames, function (frame) {
             renderSoundFrame(frame, pageHash);
-            updateFrameBounds(frame.id, pageHash);
+            //updateFrameBounds(frame.id, pageHash);
         });
     }
 
@@ -2465,11 +2465,12 @@ function renderSoundFrame(frame, pageHash) {
 
     const html = '<div class="sound-frame" data-id="' + frame.id + '" style="' + frameStyle + '">' +
         '<div class="sound-frame-title" style="' + titleStyle + '">' +
-        '<span class="title-text" title="Двойной клик для переименования">' + frame.title + '</span>' +
+        '<span class="title-text" title="Двойной клик для переименования">' + (frame.title || '') + '</span>' +
         '<button class="button is-small delete-frame-btn" title="Удалить рамку"><i class="fa fa-times"></i></button>' +
         '</div></div>';
 
     $(html).appendTo(selector);
+    alert(JSON.stringify(frame, null, 2));
 }
 
 // Recalculate frame bounds around its blocks
