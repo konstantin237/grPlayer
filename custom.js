@@ -17,7 +17,6 @@ const List = require('list.js');
 const Store = require('electron-store');
 const Shepherd = require('shepherd.js');
 const tippy = require('tippy.js/umd/index');
-const Fuse = require('fuse.js');
 const moment = require('moment');
 
 const hp = require('./vendor/howler');
@@ -55,7 +54,6 @@ let $currentBlock;
 let selectedColor;
 let tour;
 let $quickSearch;
-let fuseSearch;
 let infoTipsActive = false;
 let infoGradientActive = false;
 
@@ -113,6 +111,7 @@ function toggleEditMode() {
     const $blocks = $('.main .sound-block');
     isEditMode = !isEditMode;
     $('body').toggleClass(editClass);
+    $('.mode-indicator').text(isEditMode ? 'mode: edit' : 'mode: play');
 
     if (isTrainingMode) {
         toggleTrainingMode();
@@ -358,6 +357,8 @@ function addSoundBlockFromDeck($element, position, offsetTop, offsetLeft) {
         setTimeout(function () {
             initDraggableMain($dropped, true);
         }, 100);
+
+        applyWorkAreaSearch();
 
         return true;
     }
@@ -1439,7 +1440,7 @@ function startIntro() {
 
     const steps = [{
         title: 'Здравствуй, друг-пранкер! Пройдем обучение?',
-        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Нажми <b>Включить режим редактирования</b>, чтобы сразу создавать вкладки.<br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.<br><b>Повторить</b> обучение можно через меню <b>О программе</b>.',
+        text: 'Нажми <b>Начать</b>, чтобы пройти краткое обучение.<br>Если нет желания, кликай <b>Не сейчас</b> или на крестик.<br>Нажми <b>Включить режим редактирования</b>, чтобы сразу создавать вкладки.<br><b>Поиск по звукам на рабочей области:</b> F2.<br>Чтобы не видеть это окно, жми <b>Больше не показывать</b>.<br><b>Повторить</b> обучение можно через меню <b>О программе</b>.',
         classes: 'with-grinch',
         buttons: [
             {
@@ -2352,6 +2353,23 @@ function unselectBlocks() {
     $('.ui-selected').removeClass('ui-selected');
 }
 
+// Reapply search highlight on work area sound blocks
+function applyWorkAreaSearch() {
+    if ($quickSearch && $quickSearch.hasClass('active')) {
+        const value = $quickSearch.find('.input').val().trim().toLowerCase();
+        $('.is-f2-found').removeClass('is-f2-found');
+
+        if (value.length > 0 && $main) {
+            $main.find('.sound-block').each(function () {
+                const text = $(this).find('.sound-text').text().trim().toLowerCase();
+                if (text.includes(value)) {
+                    $(this).addClass('is-f2-found');
+                }
+            });
+        }
+    }
+}
+
 // Remove brush state
 function removeBrushState() {
     $('#color-brush').removeClass('selected');
@@ -2400,7 +2418,7 @@ function processJsonFiles(files, json) {
 function closeQuickSearch() {
     $quickSearch.removeClass('active');
     document.activeElement.blur();
-    $('.is-searched, .is-found').removeClass('is-searched is-found');
+    $('.is-searched, .is-found, .is-f2-found').removeClass('is-searched is-found is-f2-found');
 }
 
 // Get hashes that match one or more boxes
@@ -3727,13 +3745,16 @@ $(function () {
         }
     });
 
-    // Exit Zen Mode hotkey
+    // Exit Zen Mode and reset all hide toggles hotkey
     addHotkey('ctrl+shift+f11', function () {
         config.set('zenMode', false);
         config.set('hideProjects', false);
         config.set('hidePages', false);
+        config.set('hideDeck', false);
+        config.set('hideEditPanel', false);
+        config.set('hideTabs', false);
         updateUIVisibility();
-        showNotification('Интерфейс восстановлен (Ctrl+Shift+F11)', false, 2000);
+        showNotification('Все настройки скрытия сброшены (Ctrl+Shift+F11)', false, 2000);
     });
 
     // Toggle left sidebar
@@ -3750,41 +3771,30 @@ $(function () {
     //  Search page  //
     // ------------- //
 
-    const fuseOptions = {
-        threshold: 0.5,
-        keys: ['text']
+    const toggleQuickSearch = function () {
+        if ($quickSearch.hasClass('active')) {
+            closeQuickSearch();
+        } else {
+            $quickSearch.addClass('active');
+            $quickSearch.find('.input').val('').focus();
+            $('.is-f2-found').removeClass('is-f2-found');
+        }
     };
 
-    let fuseArray;
+    addHotkey('f2', toggleQuickSearch);
+    addHotkey('ctrl+f', toggleQuickSearch);
 
-    // Close current tab
-    addHotkey('ctrl+f', function () {
-        $quickSearch.addClass('active');
-        if ($quickSearch.hasClass('active')) {
-            $quickSearch.find('.input').val('').focus();
-        }
-
-        fuseArray = _.map(allPages[currentTab].blocks, function (val, key) {
-            val.id = key;
-            return val;
-        });
-        fuseSearch = new Fuse(fuseArray, fuseOptions);
+    $body.on('click', '.quick-search-close', function () {
+        closeQuickSearch();
+    }).on('click', '.quick-search-clear', function () {
+        $quickSearch.find('.input').val('').focus();
+        $('.is-f2-found').removeClass('is-f2-found');
     });
 
-    // Input change event
+    // Input change event for sound search on work area
     $quickSearch.find('.input').on('input', _.debounce(function () {
-        const value = this.value.trim();
-        $('.is-found').removeClass('is-found');
-
-        if (value) {
-            $main.addClass('is-searched');
-            fuseSearch.search(value).forEach(function (val) {
-                $main.find('[data-hash="' + val.id + '"]').addClass('is-found');
-            });
-        } else {
-            $main.removeClass('is-searched');
-        }
-    }, 250));
+        applyWorkAreaSearch();
+    }, 150));
 
     // ----------------------------- //
     //  Info Tooltips and Gradients  //

@@ -9779,16 +9779,18 @@ textarea:focus {
   z-index: 10000; }
 
 .sound-text {
-  text-align: center;
+  text-align: left;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
   line-height: 1;
   z-index: 1;
-  word-break: break-word; }
+  word-break: break-word;
+  padding-left: 5px;
+  padding-right: 5px; }
 
 .sound-text textarea {
-  text-align: center;
+  text-align: left;
   font-size: inherit;
   line-height: 1;
   background: transparent;
@@ -10194,6 +10196,19 @@ input[type='number']::-webkit-outer-spin-button {
 .tabs.is-toggle .tab.is-active .link {
   background: transparent; }
 
+.tabs.is-toggle .mode-indicator {
+  display: inline-flex;
+  align-items: center;
+  height: calc(100% - 2px);
+  padding: 0 10px;
+  font-size: 0.9rem;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: white;
+  background-color: #ED8E3B !important;
+  border-left: 1px solid #4E5D6C;
+  user-select: none;
+  font-weight: bold; }
+
 .tabs.is-toggle .buttons,
 .tabs.is-toggle .button {
   margin: 0 !important; }
@@ -10272,6 +10287,10 @@ input[type='number']::-webkit-outer-spin-button {
   overflow: hidden;
   background-color: rgba(31, 45, 59, 0.5);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15) !important; }
+  .sound-block.is-f2-found {
+    outline: 3px solid #ffee58 !important;
+    outline-offset: -1px;
+    z-index: 10 !important; }
 
 .main {
   display: none;
@@ -10743,7 +10762,7 @@ input[type='number']::-webkit-outer-spin-button {
   color: inherit; }
 
 .shepherd-element.with-grinch {
-  min-width: 730px; }
+  min-width: 860px; }
 
 .shepherd-element.with-grinch .shepherd-content {
   padding-right: 200px;
@@ -10777,12 +10796,21 @@ input[type='number']::-webkit-outer-spin-button {
   opacity: 1; }
 
 .quick-search .input {
-  background: rgba(31, 45, 59, 0.9);
+  background: rgba(31, 45, 59, 0.95);
   box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.8);
-  border-radius: 0.25rem;
+  border-radius: 0.25rem 0 0 0.25rem;
   font-size: 1.1rem;
   border: 0;
   pointer-events: none; }
 
-.quick-search.active .input {
+.quick-search .button {
+  background: rgba(31, 45, 59, 0.95);
+  box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.8);
+  font-size: 1.1rem;
+  border: 0;
+  height: 100%;
+  pointer-events: none; }
+
+.quick-search.active .input,
+.quick-search.active .button {
   pointer-events: auto; }
