@@ -2470,7 +2470,7 @@ function renderSoundFrame(frame, pageHash) {
         '</div></div>';
 
     $(html).appendTo(selector);
-    alert(JSON.stringify(frame, null, 2));
+    //alert(JSON.stringify(frame, null, 2));
 }
 
 // Recalculate frame bounds around its blocks
