@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: 'unsafe-inline'">
+    <script src="custom.js"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- LEFT NAVIGATOR -->
+    <nav class="panel app__navigator" id="navigator">
+
+        <div class="panel-heading navigator__header">
+            <img class="drag" src="static/icon-64.png" alt="GrinchPlayer">
+            <span class="navigator__title is-size-5 drag">GrinchPlayer v1.7.2</span>
+        </div>
+
+        <div class="navigator__about">
+            <i class="fa fa-phone-volume"></i>
+            Плеер by <span class="navigator__author">Nik</span>
+        </div>
+
+        <div class="navigator__info">
+            <a class="panel-block" id="settings">
+                <i class="fa fa-gear"></i> Настройки
+            </a>
+
+            <a class="panel-block" id="about">
+                <i class="fa fa-question-circle"></i> О программе
+            </a>
+        </div>
+
+        <div class="navigator__pages" id="page-search">
+
+            <p class="panel-heading">Страницы</p>
+
+            <div class="navigator__search field has-addons">
+                <p class="control has-icons-left">
+                    <input class="input search" type="text" placeholder="фильтр">
+
+                    <span class="icon is-left">
+                        <i class="fa fa-search"></i>
+                    </span>
+                </p>
+
+                <p class="control">
+                    <button class="button is-dark sort" data-sort="text">
+                        <i class="fa fa-sort-alpha-asc"></i>
+                    </button>
+                </p>
+            </div>
+
+            <div class="navigator__pages-list"></div>
+
+        </div>
+
+
+        <div class="navigator__projects" id="project-search">
+
+            <p class="panel-heading">Проекты</p>
+
+            <div class="navigator__search field has-addons">
+                <p class="control has-icons-left">
+                    <input class="input search" type="text" placeholder="фильтр">
+
+                    <span class="icon is-left">
+                        <i class="fa fa-search"></i>
+                    </span>
+                </p>
+
+                <p class="control">
+                    <button class="button is-dark sort" data-sort="text">
+                        <i class="fa fa-sort-alpha-asc"></i>
+                    </button>
+                </p>
+            </div>
+
+            <div class="navigator__projects-list"></div>
+
+            <div class="panel-block bottom">
+                <button class="button is-link is-outlined is-fullwidth navigator__close-project">
+                    Снять выделение
+                </button>
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <!-- MAIN WORKSPACE -->
+    <div class="app__workspace">
+
+        <div class="notification is-success"></div>
+
+        <div class="app__zen-mode-hint">
+            Для возврата интерфейса нажмите <b>Ctrl + Shift + F11</b>
+        </div>
+
+
+        <!-- TABS -->
+        <div class="tabs is-toggle drag" id="tabs">
+
+            <ul></ul>
+
+            <div class="buttons no-drag">
+
+                <span
+                    class="tabs__mode-indicator"
+                    title="Текущий режим">
+                    mode: play
+                </span>
+
+                <button
+                    class="button is-dark"
+                    id="tab-actions">
+                    <i class="fa fa-chevron-circle-down"></i>
+                </button>
+
+            </div>
+
+
+            <!-- QUICK SEARCH -->
+            <div
+                class="control quick-search field has-addons"
+                id="quick-search">
+
+                <p class="control is-expanded">
+                    <input
+                        class="input"
+                        type="text"
+                        placeholder="Поиск на странице (F2)">
+                </p>
+
+                <p class="control">
+                    <button
+                        class="button is-dark quick-search__clear"
+                        title="Очистить">
+                        <i class="fa fa-eraser"></i>
+                    </button>
+                </p>
+
+                <p class="control">
+                    <button
+                        class="button is-dark quick-search__close"
+                        title="Закрыть (F2)">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- WINDOW CONTROLS -->
+    <div class="window-controls buttons drag">
+
+        <button
+            class="button window-controls__button no-drag"
+            id="win-minimize">
+            <i class="fa fa-window-minimize"></i>
+        </button>
+
+        <button
+            class="button window-controls__button no-drag"
+            id="win-maximize">
+            <i class="fa fa-window-maximize"></i>
+        </button>
+
+        <button
+            class="button window-controls__button no-drag"
+            id="win-close">
+            <i class="fa fa-window-close"></i>
+        </button>
+
+    </div>
+
+
+    <!-- DECK -->
+    <nav class="panel deck" id="deck">
+
+        <p class="panel-heading deck__title drag">
+            Колода
+        </p>
+
+        <p class="panel-heading deck__phrases">
+            Осталось фраз:
+            <span class="deck__count">0</span>
+        </p>
+
+
+        <!-- BATCH ADD -->
+        <div class="panel-block deck__batch">
+
+            <div class="field has-addons">
+
+                <p class="control">
+                    <button class="button is-dark is-static">
+                        Добавить
+                    </button>
+                </p>
+
+                <p class="control is-expanded">
+                    <input
+                        class="input"
+                        type="number"
+                        min="1"
+                        id="batch-num">
+                </p>
+
+                <p class="control">
+                    <button class="button is-dark is-static">
+                        фраз
+                    </button>
+                </p>
+
+                <p class="control">
+                    <button
+                        disabled
+                        class="button is-dark"
+                        id="batch-btn"
+                        title="Добавить на страницу">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- DECK SEARCH -->
+        <div class="deck__search">
+
+            <p
+                class="control has-icons-left"
+                id="search-wrapper">
+
+                <span class="icon is-left">
+                    <i class="fa fa-search"></i>
+                </span>
+
+            </p>
+
+        </div>
+
+
+        <!-- DECK BOTTOM -->
+        <div class="panel-block bottom" id="deck-bottom">
+
+            <button
+                class="button is-link is-outlined deck__training"
+                id="toggle-training">
+                Тренировка
+            </button>
+
+            <button
+                class="button is-link is-outlined deck__erase"
+                id="remove-deck"
+                title="Очистить колоду"
+                disabled>
+                Очистить
+            </button>
+
+        </div>
+
+
+        <!-- TRAINING MODE -->
+        <div class="training-mode" id="training-mode">
+
+            <div class="training-mode__option">
+                Успевать кликать за
+                <input
+                    class="input"
+                    min="1"
+                    type="number"
+                    value="2"
+                    id="train-secs">
+                сек.
+            </div>
+
+
+            <div class="training-mode__option">
+                Проигрывать макс.
+                <input
+                    class="input"
+                    min="1"
+                    type="number"
+                    value="3"
+                    id="play-secs">
+                сек.
+            </div>
+
+
+            <div class="training-mode__option">
+
+                <label
+                    class="radio"
+                    title="Текущая страница">
+
+                    <input
+                        class="bullet"
+                        type="radio"
+                        name="sound-mode"
+                        value="page"
+                        checked>
+
+                    текущ.
+
+                </label>
+
+
+                <label
+                    class="radio"
+                    title="Все страницы">
+
+                    <input
+                        class="bullet"
+                        type="radio"
+                        name="sound-mode"
+                        value="active">
+
+                    все стр.
+
+                </label>
+
+
+                <label
+                    class="radio"
+                    title="Выделенные звуки">
+
+                    <input
+                        class="bullet"
+                        type="radio"
+                        name="sound-mode"
+                        value="selected">
+
+                    выдел.
+
+                </label>
+
+            </div>
+
+
+            <div class="training-mode__option columns is-gapless">
+
+                <div class="column">
+                    <span
+                        class="icon fa-stack"
+                        title="Коробка №1">
+
+                        <i class="fa fa-square fa-stack-2x"></i>
+                        <strong class="fa-stack-1x">1</strong>
+
+                    </span>
+
+                    <span
+                        class="training-mode__number"
+                        id="box-1">
+                        0
+                    </span>
+                </div>
+
+
+                <div class="column">
+                    <span
+                        class="icon fa-stack"
+                        title="Коробка №2">
+
+                        <i class="fa fa-square fa-stack-2x"></i>
+                        <strong class="fa-stack-1x">2</strong>
+
+                    </span>
+
+                    <span
+                        class="training-mode__number"
+                        id="box-2">
+                        0
+                    </span>
+                </div>
+
+
+                <div class="column">
+                    <span
+                        class="icon fa-stack"
+                        title="Коробка №3">
+
+                        <i class="fa fa-square fa-stack-2x"></i>
+                        <strong class="fa-stack-1x">3</strong>
+
+                    </span>
+
+                    <span
+                        class="training-mode__number"
+                        id="box-3">
+                        0
+                    </span>
+                </div>
+
+
+                <div class="column">
+                    <span
+                        class="icon fa-stack"
+                        title="Коробка №4">
+
+                        <i class="fa fa-square fa-stack-2x"></i>
+                        <strong class="fa-stack-1x">4</strong>
+
+                    </span>
+
+                    <span
+                        class="training-mode__number"
+                        id="box-4">
+                        0
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="training-mode__option">
+
+                <button
+                    class="button is-medium training-mode__start"
+                    id="start-training">
+                    Начать
+                </button>
+
+            </div>
+
+
+            <div class="training-mode__preview"></div>
+
+        </div>
+
+
+        <!-- EDIT MODE -->
+        <div class="edit-mode">
+
+            <div class="panel-heading edit-mode__heading">
+                Редактировать
+            </div>
+
+
+            <div class="buttons edit-mode__color-tools">
+
+                <button
+                    class="button"
+                    id="color-choose"
+                    title="Выбрать цвет">
+
+                    <i class="fa fa-delicious"></i>
+                    Цвет
+
+                </button>
+
+
+                <button
+                    class="button apply"
+                    id="color-apply"
+                    title="Применить цвет к выделенным (Ctrl+D)">
+
+                    <i class="fa fa-check"></i>
+
+                </button>
+
+
+                <button
+                    class="button brush"
+                    id="color-brush"
+                    title="Режим рисования">
+
+                    <i class="fa fa-paint-brush"></i>
+                    Кисть
+
+                </button>
+
+            </div>
+
+
+            <div class="panel-heading edit-mode__heading">
+                Добавить
+            </div>
+
+
+            <div class="buttons edit-mode__buttons">
+
+                <button
+                    class="button"
+                    id="add-sound"
+                    title="Добавить файлы в колоду">
+
+                    <i class="fa fa-file-o"></i>
+                    Файлы
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="add-folder"
+                    title="Добавить папки в колоду">
+
+                    <i class="fa fa-folder-o"></i>
+                    Папки
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="add-pp"
+                    title="Добавить страницу из PrankPlayer v2">
+
+                    <i class="fa fa-bullhorn"></i>
+                    PPv2
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="add-ppx"
+                    title="Добавить все PPv2 страницы в папках">
+
+                    <i class="fa fa-tty"></i>
+                    Nx PPv2
+
+                </button>
+
+            </div>
+
+
+            <div class="panel-heading edit-mode__heading">
+                Страница
+            </div>
+
+
+            <div class="buttons edit-mode__buttons">
+
+                <button
+                    class="button"
+                    id="create-frame"
+                    title="Создать рамку с подписью вокруг выделенных звуков">
+
+                    <i class="fa fa-square-o"></i>
+                    Рамка
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="remove-main"
+                    title="Переместить все блоки в колоду">
+
+                    <i class="fa fa-window-close-o"></i>
+                    Очистить
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="save-all"
+                    title="Сохранить изменения (Ctrl+S)">
+
+                    <i class="fa fa-floppy-o"></i>
+                    Сохранить
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="page-import"
+                    title="Импортировать страницы">
+
+                    <i class="fa fa-sign-in"></i>
+                    Импорт
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="page-export"
+                    title="Экспортировать активную страницу">
+
+                    <i class="fa fa-sign-out"></i>
+                    Экспорт
+
+                </button>
+
+
+                <button
+                    class="button"
+                    id="batch-export"
+                    title="Экспортировать все страницы">
+
+                    <i class="fa fa-upload"></i>
+                    Экспорт всех страниц
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+</div>
+
+
+<!-- AUDIO DEVICES MODAL -->
+<div class="modal no-drag" id="devices">
+
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+
+        <header class="modal-card-head">
+
+            <p class="modal-card-title">
+                Выберите устройство вывода звука
+            </p>
+
+            <button
+                class="delete"
+                aria-label="close">
+            </button>
+
+        </header>
+
+
+        <section class="modal-card-body">
+
+            <div class="list is-hoverable"></div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<!-- HELP MODAL -->
+<div class="modal no-drag" id="help">
+
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+
+        <header class="modal-card-head">
+
+            <p class="modal-card-title">
+                Помощь
+            </p>
+
+            <button
+                class="delete"
+                aria-label="close">
+            </button>
+
+        </header>
+
+
+        <section class="modal-card-body">
+
+            <div class="content">
+
+                <h3>Основные понятия</h3>
+
+                <ul>
+                    <li>Режим <b>воспроизведения</b> — для проигрывания звуков (стандартный)
+                    <li>Режим <b>редактирования</b> — позволяет редактировать страницы и блоки
+                    <li><b>Страница</b> — главная область по центру (с сеткой в режиме редактирования)
+                    <li><b>Проект</b> — набор страниц
+                    <li><b>Блок</b> — прямоугольник с текстом, соответствующий звуку
+                    <li><b>Вкладка</b> — заголовок страницы вверху экрана (для переключения)
+                    <li><b>Колода</b> — правая панель с добавленными, но не размещенными на странице звуками
+                    <li><b>Навигатор</b> — левая панель со списком страниц и проектов
+                    <li><b>PPv2</b> — Prank Player v2, старый плеер (by Pyro)
+                    <li>
+                        Поддерживаемые <b>форматы аудио</b>:<br>
+                        MP3, MPEG, OPUS, OGG, OGA, WAV, AAC, CAF, M4A, MP4, WEBA, WEBM, DOLBY, FLAC
+                    </li>
+                </ul>
+
+
+                <h3>Управление</h3>
+
+                <ul>
+                    <li><b>Пробел</b> — войти в режим редактирования
+                    <li><b>Ctrl+S</b> — сохранить базу вручную
+                    <li><b>+/−</b> или <b>Ctrl+Колесо</b> — зум, масштабирование интерфейса
+                    <li>Цифры и буквы <b>1-7, Й-Г, Ф-О, Я-Ь</b> — быстрое переключение вкладок (1-28)
+                    <li><b>Ctrl+W</b> — закрыть текущую вкладку
+                    <li><b>Ctrl+Alt+W</b> — закрыть все вкладки (и снять выделение с проекта)
+                    <li><b>F2</b> или <b>Ctrl+F</b> — быстрый поиск блока на текущей странице (жёлтая рамка)
+                    <li><b>Ctrl+Shift+F11</b> — сбросить все настройки скрытия интерфейса
+                    <li><b>Правая</b> кнопка на странице (нажать) — пауза или продолжение воспроизведения звука</li>
+                    <li><b>Левая</b> кнопка в навигаторе страниц (зажать и перенести на вкладки) — открыть страницу
+                    <li><b>Левая</b> кнопка в навигаторе (<b>двойной клик</b>) — открыть страницу или проект</li>
+                    <li><b>Правая</b> кнопка на звуке в колоде — воспроизвести звук</li>
+                    <li><b>Escape</b> — закрыть всплывающее окно, сбросить фильтр в поиске, выйти из режима рисования
+                    <li><b>Ctrl+Q</b> — включить/выключить информационные подсказки (блоки/страницы)
+                    <li><b>Ctrl+A</b> — включить/выключить информационную подсветку (блоки/страницы)
+                    <li><b>Ctrl+Левая</b> кнопка на блоке (нажать) — открыть расположение файла
+                    <li><b>Ctrl+1</b> — скрыть показать левый сайдбар (навигатор)
+                    <li><b>Ctrl+2</b> — скрыть показать правый сайдбар (колоду)
+                </ul>
+
+
+                <h3>В режиме воспроизведения</h3>
+
+                <ul>
+                    <li><b>Левая</b> кнопка на блоке — проиграть звук</li>
+                </ul>
+
+
+                <h3>В режиме редактирования</h3>
+
+                <ul>
+                    <li><b>Левая</b> кнопка на блоке (зажать и двигать) — переместить</li>
+                    <li><b>Правая</b> кнопка на блоке (зажать и двигать) — изменить размер</li>
+                    <li><b>Ctrl+Правая</b> кнопка на блоке — переименовать</li>
+                    <li><b>Колесо</b> на блоке — проиграть звук</li>
+                    <li><b>Shift+Левая</b> кнопка на странице или в колоде (зажать и двигать) — выделение</li>
+                    <li><b>Delete</b> — удаление выделенных звуков (в колоду или из базы)</li>
+                    <li><b>Левая</b> кнопка на звуке в колоде (<b>двойной клик</b>) — добавить звук в пустое место</li>
+                    <li><b>Правая</b> кнопка на вкладке или названии проекта — переименовать</li>
+                    <li><b>Alt+S</b> — сохранить вкладки в текущий проект</li>
+                    <li><b>Shift+Alt+S</b> — сохранить вкладки как новый проект</li>
+                    <li><b>Ctrl+C</b> — скопировать звуки со страницы или из колоды</li>
+                    <li><b>Ctrl+X</b> — вырезать звуки со страницы или из колоды</li>
+                    <li><b>Ctrl+V</b> — вставить звуки на страницу или в колоду</li>
+                    <li><b>Shift+C</b> — использовать выделенные блоки для тренировки (заменить)</li>
+                    <li><b>Shift+D</b> — использовать выделенные блоки для тренировки (добавить)</li>
+                </ul>
+
+
+                <h3>Добавление файлов/папок из проводника (drag'n'drop)</h3>
+
+                <ol>
+                    <li>Перейти в режим <b>редактирования</b></li>
+                    <li><b>Выделить</b> файлы/папки в проводнике</li>
+                    <li><b>Перенести</b> их в окно плеера в область <b>колоды</b> (правой панели)</li>
+                </ol>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<!-- FRAME CREATE MODAL -->
+<div class="modal no-drag" id="frame-create">
+
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+
+        <header class="modal-card-head">
+
+            <p class="modal-card-title">
+                Название рамки
+            </p>
+
+            <button
+                class="delete"
+                aria-label="close">
+            </button>
+
+        </header>
+
+
+        <section class="modal-card-body">
+
+            <div class="field has-addons">
+
+                <div class="control is-expanded">
+
+                    <input
+                        class="input is-large frame-create__title-input"
+                        type="text"
+                        placeholder="Введите название (напр. Приветствие)">
+
+                </div>
+
+
+                <div class="control">
+
+                    <button
+                        class="button is-large is-primary frame-create__confirm">
+                        Создать
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<!-- PROJECT CREATE MODAL -->
+<div class="modal no-drag" id="proj-create">
+
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+
+        <header class="modal-card-head">
+
+            <p class="modal-card-title">
+                Проект
+            </p>
+
+            <button
+                class="delete"
+                aria-label="close">
+            </button>
+
+        </header>
+
+
+        <section class="modal-card-body">
+
+            <div class="field has-addons">
+
+                <div class="control">
+
+                    <input
+                        class="input is-large"
+                        type="text"
+                        placeholder="Название">
+
+                </div>
+
+
+                <div class="control">
+
+                    <a class="button is-large btn-saveas">
+                        Сохранить
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<!-- INFO MODAL -->
+<div class="modal no-drag" id="info">
+
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+
+        <header class="modal-card-head">
+
+            <p class="modal-card-title">
+                Описание
+            </p>
+
+            <button
+                class="delete"
+                aria-label="close">
+            </button>
+
+        </header>
+
+
+        <section class="modal-card-body">
+
+            <div class="content">
+
+                <div class="info__header">
+                    <img
+                        class="info__image"
+                        src="static/legends.jpg"
+                        alt="Legends">
+                </div>
+
+
+                <h2 class="title">
+                    Grinch Player v1.7.2
+                </h2>
+
+                <h4 class="title">
+                    версия от 13 мая 2020 года
+                </h4>
+
+
+                <h3>Описание</h3>
+
+                <p>
+                    Плеер, позволяющий удобно располагать звуки на страницах,
+                    объединять их в проекты и многое другое.
+                </p>
+
+                <p>
+                    Использованные технологии: JavaScript, HTML, CSS, Electron.
+                </p>
+
+                <p>
+                    Библиотеки: jQuery, jQuery UI, Bulma, Howler.js,
+                    HotKeys.js, List.js, Tippy.js, SimpleBar,
+                    Jeditable, Shepherd.js и другие.
+                </p>
+
+                <p>
+                    Разработчик: <b>Nik</b> aka <b>n3tman</b>.
+                    Работа была начата 21 июня 2019 года
+                    для ArsenalGrinch и всех желающих.
+                </p>
+
+
+                <h3>Ссылки</h3>
+
+                <p>
+                    Репозиторий на GitHub:
+                    <a
+                        href="#"
+                        class="repository">
+                        https://github.com/n3tman/GrinchPlayer
+                    </a>
+                </p>
+
+                <p>
+                    Лицензия:
+                    <b>
+                        <a
+                            href="#"
+                            class="license">
+                            <img src="static/license.png">
+                            CC BY-NC-SA 4.0
+                        </a>
+                    </b>
+                    (обязательны: «Атрибуция», «Некоммерческое использование»,
+                    «На тех же условиях»)
+                </p>
+
+                <p>
+                    Новые версии:
+                    <a
+                        href="#"
+                        class="releases">
+                        https://github.com/n3tman/GrinchPlayer/releases
+                    </a>
+                </p>
+
+
+                <h3>Благодарности</h3>
+
+                <p>
+                    <b>ArsenalGrinch</b> — мотивация, идеи, тестирование
+                </p>
+
+                <p>
+                    <b>0000maks0000</b> — главный тестировщик и генератор новых идей,
+                    автор скринкаста по обучению работы с плеером
+                </p>
+
+                <p>
+                    <b>kolay'</b> — тестирование и поиск багов под Linux и Mac OS
+                </p>
+
+                <p>
+                    <b>FLeKsO</b> — тестирование и поиск багов
+                </p>
+
+                <p>
+                    <b>Pyro</b> aka <b>sowcow</b> — создатель оригинального Player v2,
+                    с которого копировался основной функционал
+                </p>
+
+                <p>
+                    <b>PranksWood</b> aka <b>TYP808</b> — создатель веб-плеера Player,
+                    у которого также были подсмотрены некоторые идеи
+                </p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+</body>
+</html>

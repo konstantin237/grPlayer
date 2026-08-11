@@ -1,0 +1,48 @@
+Что на что поменяли
+Было	Стало
+.layout	.app
+.navigator	.app__navigator
+.navbar-brand	.navigator__header
+.text	.navigator__title
+.about	.navigator__about
+.author	.navigator__author
+.info	.navigator__info
+.pages	.navigator__pages
+.panel-search	.navigator__search
+.items внутри Pages	.navigator__pages-list
+.projects	.navigator__projects
+.items внутри Projects	.navigator__projects-list
+.close-proj	.navigator__close-project
+.wrapper	.app__workspace
+.zen-mode-hint	.app__zen-mode-hint
+.mode-indicator	.tabs__mode-indicator
+.quick-search-clear	.quick-search__clear
+.quick-search-close	.quick-search__close
+.window	.window-controls
+кнопки .window	.window-controls__button
+.deck-title	.deck__title
+.phrases	.deck__phrases
+.count	.deck__count
+.batch	.deck__batch
+.panel-search у Deck	.deck__search
+.training	.deck__training
+.erase	.deck__erase
+.option	.training-mode__option
+.num	.training-mode__number
+.start	.training-mode__start
+.html	.training-mode__preview
+.edit	.edit-mode__heading или .edit-mode__buttons / .edit-mode__color-tools в зависимости от элемента
+.frame-title-input	.frame-create__title-input
+.btn-confirm-frame	.frame-create__confirm
+.header в #info	.info__header
+.img в #info	.info__image
+
+Особенно важные изменения:
+
+.items → два разных класса: .navigator__pages-list и .navigator__projects-list
+.option → .training-mode__option
+.edit → несколько разных БЭМ-классов
+.window → .window-controls
+.num → .training-mode__number
+
+При этом id вроде #navigator, #deck, #batch-btn, #remove-deck, #start-training, #color-choose и т. д. не менялись. Например, #batch-btn сохранился.
