@@ -67,6 +67,10 @@ let trainingMode;
 let trainFindTime;
 let trainPlayTime;
 
+
+let soundRecoveryDialogOpen = false;
+
+
 window.$ = require('jquery');
 window.jQuery = require('jquery');
 window.jQueryUI = require('jquery-ui-dist/jquery-ui');
@@ -79,6 +83,8 @@ window.fancy = require('fancy-textfill/dist/fancy-text-fill');
 //   Main Functions   //
 //                    //
 // ================== //
+
+
 
 // Show notification
 function showNotification(text, error, time) {
@@ -436,6 +442,284 @@ function initDeckEditable(deck, single) {
     });
 }
 
+
+function testSoundError() {
+    const $sound = $('.sound-block').first();
+
+    if ($sound.length === 0) {
+        console.log('Нет ни одного звука для теста');
+        return;
+    }
+
+    const hash = $sound.attr('data-hash');
+
+    console.log('TEST SOUND ERROR:', hash);
+
+    $sound.addClass('is-error');
+
+    askToRecoverSounds();
+}
+
+
+// Show one recovery dialog when one or more sounds fail.
+// ==========================================================
+// SOUND RECOVERY POPUP
+// ==========================================================
+
+function closeSoundRecoveryPopup() {
+    $('#sound-recovery-popup').removeClass('is-active');
+
+    // IMPORTANT:
+    // Always restore normal mouse interaction.
+    $('body').removeClass('events-none');
+
+    soundRecoveryDialogOpen = false;
+    ctrlShiftMouseDownSound = null;
+}
+
+
+
+function askToRecoverSounds() {
+    if (soundRecoveryDialogOpen) {
+        return;
+    }
+
+    soundRecoveryDialogOpen = true;
+
+    // Make absolutely sure the UI is interactive
+    // before showing our own popup.
+    $('body').removeClass('events-none');
+
+    $('#sound-recovery-popup').addClass('is-active');
+}
+
+
+// ==========================================================
+// SOUND RECOVERY BUTTONS
+// ==========================================================
+
+// Manual "Повторный поиск звуков" button.
+$(document).on('click', '#recover-sounds', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Make sure normal mouse interaction is restored.
+    $('body').removeClass('events-none');
+
+    recoverErrorSounds();
+});
+
+
+// "Выполнить новый поиск" button inside the popup.
+$(document).on('click', '#sound-recovery-popup-recover', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    
+
+    // Make absolutely sure normal interaction is restored.
+    $('body').removeClass('events-none');
+
+    // Start recovery after popup is closed.
+    recoverErrorSounds();
+
+    // Close popup 
+    closeSoundRecoveryPopup();
+});
+
+
+
+
+// Cancel recovery.
+$(document).on('click', '#sound-recovery-popup-cancel', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    closeSoundRecoveryPopup();
+});
+
+
+// Clicking the dark background also closes the popup.
+$(document).on('click', '#sound-recovery-popup .modal-background', function () {
+    closeSoundRecoveryPopup();
+});
+
+
+$(document).on('click', '#sound-recovery-popup-close', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    closeSoundRecoveryPopup();
+});
+
+// Escape closes the popup.
+$(document).on('keydown', function (e) {
+    if (e.which === 27 && soundRecoveryDialogOpen) {
+        closeSoundRecoveryPopup();
+    }
+});
+
+// Try to restore all sounds currently marked as errors.
+function recoverErrorSounds() {
+    console.log('Starting sound recovery...');
+
+    let total = 0;
+    let found = 0;
+    let missing = 0;
+
+    const recoveredHashes = {};
+
+    $('.is-error[data-hash]').each(function () {
+        const hash = this.dataset.hash;
+
+        if (!hash || recoveredHashes[hash]) {
+            return;
+        }
+
+        recoveredHashes[hash] = true;
+        total++;
+
+        let block = null;
+        let pageHash = null;
+
+        // Find the sound in all pages.
+        _.each(allPages, function (page, currentPageHash) {
+            if (
+                !block &&
+                page &&
+                page.blocks &&
+                page.blocks[hash]
+            ) {
+                block = page.blocks[hash];
+                pageHash = currentPageHash;
+            }
+        });
+
+        if (!block || !block.path) {
+            console.warn(
+                'Recovery failed: sound path not found in database:',
+                hash
+            );
+
+            missing++;
+            return;
+        }
+
+        const soundPath = path.normalize(block.path);
+
+        // First check whether the actual file exists.
+        if (!fs.existsSync(soundPath)) {
+            console.warn(
+                'Recovery failed: file does not exist:',
+                soundPath
+            );
+
+            missing++;
+            return;
+        }
+
+        found++;
+
+        console.log(
+            'Recovering sound:',
+            hash,
+            soundPath,
+            'page:',
+            pageHash
+        );
+
+        // Remove the old possibly broken Howl.
+        recreateHowl(hash, soundPath);
+
+        const howl = howlDb[hash];
+
+        if (!howl) {
+            console.error(
+                'Recovery failed: new Howl was not created:',
+                hash
+            );
+
+            return;
+        }
+
+        // Remove the error only after successful loading.
+        howl.once('load', function () {
+            console.log(
+                'Sound successfully recovered:',
+                hash
+            );
+
+            $('[data-hash="' + hash + '"]')
+                .removeClass('is-error');
+        });
+
+        howl.once('loaderror', function (id, error) {
+            console.error(
+                'Sound recovery load error:',
+                hash,
+                soundPath,
+                error
+            );
+
+            $('[data-hash="' + hash + '"]')
+                .addClass('is-error');
+        });
+
+        try {
+            howl.load();
+        } catch (e) {
+            console.error(
+                'Exception while recovering sound:',
+                hash,
+                soundPath,
+                e
+            );
+
+            $('[data-hash="' + hash + '"]')
+                .addClass('is-error');
+        }
+    });
+
+    console.log(
+        'Sound recovery check finished.',
+        'Total:',
+        total,
+        'Files found:',
+        found,
+        'Files missing:',
+        missing
+    );
+
+    if (total === 0) {
+        showNotification(
+            'Звуков с ошибкой не найдено',
+            false,
+            2000
+        );
+
+        return;
+    }
+
+    if (found > 0) {
+        showNotification(
+            'Выполняется повторная загрузка звуков: ' + found,
+            false,
+            3000
+        );
+    }
+
+    if (missing > 0) {
+        showNotification(
+            'Некоторые файлы действительно не найдены: ' + missing,
+            true,
+            4000
+        );
+    }
+}
+
+
+
+// Init Howl object and add it to howlDB
 // Init Howl object and add it to howlDB
 function addInitHowl(hash, soundPath) {
     if (_.keys(howlDb).includes(hash)) {
@@ -450,11 +734,22 @@ function addInitHowl(hash, soundPath) {
 
         onplay: function () {
             requestAnimationFrame(updateAudioStep);
+
+            // If playback succeeded, the sound is available.
+            $('[data-hash="' + hash + '"]')
+                .removeClass('is-error');
         },
 
         // Successful loading means that the sound is available again.
         onload: function () {
-            $('[data-hash="' + hash + '"]').removeClass('is-error');
+            console.log(
+                'Sound loaded successfully:',
+                hash,
+                soundPath
+            );
+
+            $('[data-hash="' + hash + '"]')
+                .removeClass('is-error');
         },
 
         // The sound could not be loaded.
@@ -466,7 +761,10 @@ function addInitHowl(hash, soundPath) {
                 error
             );
 
-            $('[data-hash="' + hash + '"]').addClass('is-error');
+            $('[data-hash="' + hash + '"]')
+                .addClass('is-error');
+
+            askToRecoverSounds();
         },
 
         // The sound was loaded, but playback failed.
@@ -478,7 +776,10 @@ function addInitHowl(hash, soundPath) {
                 error
             );
 
-            $('[data-hash="' + hash + '"]').addClass('is-error');
+            $('[data-hash="' + hash + '"]')
+                .addClass('is-error');
+
+            askToRecoverSounds();
         }
     });
 }
@@ -498,6 +799,70 @@ function recreateHowl(hash, soundPath) {
     }
 
     addInitHowl(hash, soundPath);
+}
+
+
+// --------------------------------------------------
+// TEST: intentionally cause a real Howler load error
+// The original block.path is NOT changed.
+// --------------------------------------------------
+function testBreakSound(hash) {
+    if (!currentTab ||
+        !allPages[currentTab] ||
+        !allPages[currentTab].blocks ||
+        !allPages[currentTab].blocks[hash]) {
+
+        console.error('Test error: sound block not found:', hash);
+        return;
+    }
+
+    const block = allPages[currentTab].blocks[hash];
+
+    if (!block.path) {
+        console.error('Test error: original sound path not found:', hash);
+        return;
+    }
+
+    console.log('TEST: breaking sound temporarily');
+    console.log('Hash:', hash);
+    console.log('Original path:', block.path);
+
+    // Remove the working Howl.
+    if (howlDb[hash]) {
+        try {
+            howlDb[hash].stop();
+        } catch (e) {
+            console.error('Error stopping Howl:', e);
+        }
+
+        try {
+            howlDb[hash].unload();
+        } catch (e) {
+            console.error('Error unloading Howl:', e);
+        }
+
+        delete howlDb[hash];
+    }
+
+    // Create a deliberately invalid path.
+    // IMPORTANT:
+    // block.path is NOT changed.
+    const brokenPath = block.path + '.TEST_BROKEN_FILE';
+
+    console.log('TEST: loading broken path:', brokenPath);
+
+    // Create a temporary broken Howl.
+    addInitHowl(hash, brokenPath);
+
+    const howl = howlDb[hash];
+
+    if (!howl) {
+        console.error('TEST: failed to create test Howl');
+        return;
+    }
+
+    // Force loading.
+    howl.load();
 }
 
 // Add sound block to the deck
@@ -1063,8 +1428,16 @@ function initNewPageBlocks(hash, isSaved) {
         }
 
         if (e.ctrlKey) {
+            e.preventDefault();
+            e.stopPropagation();
+
             const path = allPages[currentTab].blocks[hash].path;
-            shell.showItemInFolder(path);
+
+            setTimeout(() => {
+                shell.showItemInFolder(path);
+            }, 0);
+
+            return;
         }
     }).on('contextmenu', function (e) {
         // Pause/play already playing sound
@@ -3639,15 +4012,198 @@ $(function () {
     // ------------- //
     //  Body events  //
     // ------------- //
+// ==========================================================
+// GLOBAL EVENT HANDLERS
+// ==========================================================
+// Ctrl + Shift + Left Mouse Button diagnostic handler
+// ==========================================================
+//
+// IMPORTANT:
+// We do NOT preventDefault().
+// We do NOT stopPropagation().
+//
+// mousedown only remembers the sound block.
+// The popup is shown AFTER mouseup, so the normal
+// playback / drag / selection logic can finish first.
+// ==========================================================
 
-    $body.on('keydown', '.sound-text textarea, .text textarea', function (e) {
+// ==========================================================
+// CTRL + SHIFT + LEFT MOUSE BUTTON
+// Show sound diagnostic without blocking the UI.
+// ==========================================================
+
+let ctrlShiftMouseDownSound = null;
+
+
+function clearTemporaryMouseState() {
+    $('body').removeClass('events-none');
+
+    ctrlShiftMouseDownSound = null;
+}
+
+
+document.addEventListener('mousedown', function (e) {
+
+    if (
+        !e.ctrlKey ||
+        !e.shiftKey ||
+        e.button !== 0
+    ) {
+        ctrlShiftMouseDownSound = null;
+        return;
+    }
+
+    const hadEventsNone = $('body').hasClass('events-none');
+
+    // Shift normally disables pointer events.
+    // Temporarily remove the class so we can find
+    // the sound block under the mouse.
+    if (hadEventsNone) {
+        $('body').removeClass('events-none');
+    }
+
+    const elementUnderMouse = document.elementFromPoint(
+        e.clientX,
+        e.clientY
+    );
+
+    // Restore the previous state immediately.
+    if (hadEventsNone) {
+        $('body').addClass('events-none');
+    }
+
+    if (!elementUnderMouse) {
+        ctrlShiftMouseDownSound = null;
+        return;
+    }
+
+    const soundBlock = elementUnderMouse.closest('.sound-block');
+
+    if (!soundBlock) {
+        ctrlShiftMouseDownSound = null;
+        return;
+    }
+
+    ctrlShiftMouseDownSound = {
+        hash: soundBlock.dataset.hash || '(no hash)',
+        x: e.clientX,
+        y: e.clientY
+    };
+
+}, true);
+
+
+document.addEventListener('mouseup', function (e) {
+
+    if (
+        !e.ctrlKey ||
+        !e.shiftKey ||
+        e.button !== 0
+    ) {
+        ctrlShiftMouseDownSound = null;
+        return;
+    }
+
+    const sound = ctrlShiftMouseDownSound;
+
+    ctrlShiftMouseDownSound = null;
+
+    if (!sound) {
+        return;
+    }
+
+    // Let normal playback / drag / selection events finish first.
+    setTimeout(function () {
+
+        // IMPORTANT:
+        // Never use alert() here.
+        // It can interrupt keyboard/mouse events.
+        $('body').removeClass('events-none');
+
+        console.log(
+            'Ctrl + Shift + LMB sound:',
+            sound.hash
+        );
+
+        // Mark this sound as broken for recovery.
+        testBreakSound(sound.hash);
+
+        // Open our non-blocking popup.
+        askToRecoverSounds();
+
+    }, 0);
+
+}, true);
+
+
+// If the application loses focus while Shift is pressed,
+// make sure the UI cannot remain locked.
+window.addEventListener('blur', function () {
+    clearTemporaryMouseState();
+});
+
+
+// Extra safety.
+document.addEventListener('keyup', function (e) {
+    if (e.key === 'Shift') {
+        $('body').removeClass('events-none');
+    }
+});
+
+document.addEventListener('mouseup', function (e) {
+    if (
+        !e.ctrlKey ||
+        !e.shiftKey ||
+        e.button !== 0
+    ) {
+        ctrlShiftMouseDownSound = null;
+        return;
+    }
+
+    const sound = ctrlShiftMouseDownSound;
+
+    ctrlShiftMouseDownSound = null;
+
+    if (!sound) {
+        return;
+    }
+
+    // IMPORTANT:
+    // mouseup itself is allowed to finish normally.
+    // Only after the event has completely finished do we
+    // open the popup and intentionally break the sound.
+    setTimeout(function () {
+        // eslint-disable-next-line no-alert
+        alert(
+            'Нажато: Ctrl + Shift + ЛКМ\n' +
+            'Hash: ' + sound.hash
+        );
+
+        testBreakSound(sound.hash);
+    }, 0);
+
+}, true);
+
+
+
+
+// ==========================================================
+// BODY EVENT HANDLERS
+// ==========================================================
+
+$body
+    .on('keydown', '.sound-text textarea, .text textarea', function (e) {
         // Prevent new line on Enter key
         if (e.which === 13) {
             e.target.blur();
         }
-    }).on('click', '.modal-background, .modal .delete', function () {
+    })
+
+    .on('click', '.modal-background, .modal .delete', function () {
         $('.modal.is-active').removeClass('is-active');
-    }).keydown(function (e) {
+    })
+
+    .keydown(function (e) {
         // Prevent tab key
         if (e.which === 9) {
             e.preventDefault();
@@ -3657,77 +4213,122 @@ $(function () {
         if (e.which === 16 && !e.originalEvent.repeat) {
             $('body').addClass('events-none');
         }
-    }).keyup(function (e) {
-        if (e.which === 16) {
-            $('body').removeClass('events-none');
-        }
-    }).on('keydown', '#deck .search', function (e) {
+    })
+
+   .keyup(function (e) {
+    if (e.which === 16) {
+        $('body').removeClass('events-none');
+        ctrlShiftMouseDownSound = null;
+    }
+})
+
+    .on('keydown', '#deck .search', function (e) {
         // Escape erases search
         if (e.which === 27) {
             resetDeckList();
         }
-    }).on('keydown', '#page-search .search', function (e) {
+    })
+
+    .on('keydown', '#page-search .search', function (e) {
         if (e.which === 27) {
             resetPageSearch();
         }
-    }).on('keydown', '#project-search .search', function (e) {
+    })
+
+    .on('keydown', '#project-search .search', function (e) {
         if (e.which === 27) {
             resetProjectSearch();
         }
-    }).on('keydown', '#proj-create .input', function (e) {
+    })
+
+    .on('keydown', '#proj-create .input', function (e) {
         // Enter in project input
         if (e.which === 13) {
             projectSaveAction(e.target);
         }
-    }).on('keydown', '#quick-search .input', function (e) {
+    })
+
+    .on('keydown', '#quick-search .input', function (e) {
         // Close quick search input
         if (e.which === 27 && $quickSearch.hasClass('active')) {
             closeQuickSearch();
         }
-    }).on('wheel', function (e) {
+    })
+
+    .on('wheel', function (e) {
         if (e.ctrlKey) {
             const delta = e.originalEvent.deltaY;
             updateZoom(delta);
         }
-    }).on('mouseenter', '.sound-page', function () {
+    })
+
+    .on('mouseenter', '.sound-page', function () {
         // Remove focus from active inputs so the hotkeys work fine
         // document.activeElement.blur();
-    }).on('click', '.close-tabs', function () {
+    })
+
+    .on('click', '.close-tabs', function () {
         if (_.size(activePages) > 0) {
             actionWithLoading(function () {
                 closeAllTabs();
                 unselectProjects();
             });
         }
-    }).on('click', '.add-tab', function () {
+    })
+
+    .on('click', '.add-tab', function () {
         if (isEditMode) {
             addNewEmptyPage();
             tabClick(false);
             advanceIfTourStep('add-page');
         }
-    }).on('click', '.proj-saveas', function () {
+    })
+
+    .on('click', '.proj-saveas', function () {
         projectSaveAs();
-    }).on('click', '.btn-saveas', function () {
+    })
+
+    .on('click', '.btn-saveas', function () {
         projectSaveAction(this);
-    }).on('click', '.navigator__close-project', function () {
+    })
+
+    .on('click', '.navigator__close-project', function () {
         unselectProjects();
-    }).on('click', '.proj-save', function () {
+    })
+
+    .on('click', '.proj-save', function () {
         projectSaveButton();
-    }).on('click', '.settings-main-view a.panel-block:not(.open-interface-menu)', function () {
-        document.querySelector('#settings')._tippy.hide();
-    }).on('click', '.open-interface-menu', function (e) {
+    })
+
+    .on(
+        'click',
+        '.settings-main-view a.panel-block:not(.open-interface-menu)',
+        function () {
+            document.querySelector('#settings')._tippy.hide();
+        }
+    )
+
+    .on('click', '.open-interface-menu', function (e) {
         e.stopPropagation();
         e.preventDefault();
+
         const $panel = $(this).closest('.settings-panel');
+
         $panel.find('.settings-main-view').hide();
         $panel.find('.settings-interface-view').show();
-    }).on('click', '.back-to-main-settings', function (e) {
+    })
+
+    .on('click', '.back-to-main-settings', function (e) {
         e.stopPropagation();
         e.preventDefault();
+
         const $panel = $(this).closest('.settings-panel');
+
         $panel.find('.settings-interface-view').hide();
         $panel.find('.settings-main-view').show();
-    }).on('click', '.set-device', function () {
+    })
+
+    .on('click', '.set-device', function () {
         const $devices = $('#devices');
         const $list = $devices.find('.list');
 
@@ -3740,68 +4341,141 @@ $(function () {
 
             audioDevices.forEach(function (audioDevice) {
                 const id = audioDevice.deviceId;
-                const classes = id === deviceId ? 'list-item is-active' : 'list-item';
-                const html = '<a class="' + classes + '" data-id="' + id + '">' +
-                    audioDevice.label + '</a>';
+
+                const classes =
+                    id === deviceId
+                        ? 'list-item is-active'
+                        : 'list-item';
+
+                const html =
+                    '<a class="' +
+                    classes +
+                    '" data-id="' +
+                    id +
+                    '">' +
+                    audioDevice.label +
+                    '</a>';
+
                 $list.append(html);
             });
 
             $devices.addClass('is-active');
         });
-    }).on('click', '.flush-cache', function () {
+    })
+
+    .on('click', '.flush-cache', function () {
         flushSavedPages();
-        showNotification('Кеш страниц очищен!', false, 3000);
-    }).on('click', '.info-tips', function () {
+
+        showNotification(
+            'Кеш страниц очищен!',
+            false,
+            3000
+        );
+    })
+
+    .on('click', '.info-tips', function () {
         toggleInfoTooltips();
-    }).on('click', '.info-gradient', function () {
+    })
+
+    .on('click', '.info-gradient', function () {
         toggleInfoGradients();
-    }).on('click', '.toggle-ui', function (e) {
+    })
+
+    .on('click', '.toggle-ui', function (e) {
         e.stopPropagation();
         e.preventDefault();
+
         const type = $(this).data('type');
         const currentValue = config.get(type) || false;
+
         setUIToggle(type, !currentValue);
 
         const $panel = $(this).closest('.settings-panel');
+
         $panel.find('.toggle-ui').each(function () {
             const t = $(this).data('type');
             const val = config.get(t) || false;
-            $(this).find('.fa').toggleClass('fa-square-o', !val).toggleClass('fa-check-square-o', val);
+
+            $(this)
+                .find('.fa')
+                .toggleClass('fa-square-o', !val)
+                .toggleClass('fa-check-square-o', val);
         });
-    }).on('change', '#theme-select', function (e) {
+    })
+
+    .on('change', '#theme-select', function (e) {
         e.stopPropagation();
+
         const theme = $(this).val();
+
         config.set('theme', theme);
         updateTheme();
-        showNotification('Тема изменена: ' + (theme === 'light' ? 'Светлая' : 'Тёмная'), false, 1500);
-    }).on('click', '.about-panel a.panel-block', function () {
+
+        showNotification(
+            'Тема изменена: ' +
+            (theme === 'light' ? 'Светлая' : 'Тёмная'),
+            false,
+            1500
+        );
+    })
+
+    .on('click', '.about-panel a.panel-block', function () {
         document.querySelector('#about')._tippy.hide();
-    }).on('click', '.show-help', function () {
+    })
+
+    .on('click', '.show-help', function () {
         $('#help').addClass('is-active');
-    }).on('click', '.show-info', function () {
+    })
+
+    .on('click', '.show-info', function () {
         $('#info').addClass('is-active');
-    }).on('click', '#create-frame', function () {
+    })
+
+    .on('click', '#create-frame', function () {
         createFrameFromSelected();
-    }).on('click', '.sound-frame', function (e) {
+    })
+
+    .on('click', '.sound-frame', function (e) {
         if (!isEditMode) {
             return;
         }
 
         const frameId = $(this).data('id');
-        const frame = allPages[currentTab] && allPages[currentTab].frames && allPages[currentTab].frames[frameId];
+
+        const frame =
+            allPages[currentTab] &&
+            allPages[currentTab].frames &&
+            allPages[currentTab].frames[frameId];
+
         if (!frame) {
             return;
         }
 
         if (e.altKey) {
             e.stopPropagation();
+
             if (selectedColor === undefined) {
-                showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+                showNotification(
+                    'Сначала выберите цвет кнопкой «Цвет»',
+                    true,
+                    1500
+                );
             } else {
                 frame.bgColor = selectedColor;
-                const frameBg = colorHexMap[selectedColor] || selectedColor;
-                $(this).css('background-color', frameBg);
-                showNotification('Цвет фона рамки изменён', false, 1500);
+
+                const frameBg =
+                    colorHexMap[selectedColor] || selectedColor;
+
+                $(this).css(
+                    'background-color',
+                    frameBg
+                );
+
+                showNotification(
+                    'Цвет фона рамки изменён',
+                    false,
+                    1500
+                );
             }
 
             return;
@@ -3809,13 +4483,28 @@ $(function () {
 
         if (e.ctrlKey) {
             e.stopPropagation();
+
             if (selectedColor === undefined) {
-                showNotification('Сначала выберите цвет кнопкой «Цвет»', true, 1500);
+                showNotification(
+                    'Сначала выберите цвет кнопкой «Цвет»',
+                    true,
+                    1500
+                );
             } else {
                 frame.textColor = selectedColor;
-                const textColor = colorHexMap[selectedColor] || selectedColor;
-                $(this).find('.sound-frame__title').css('color', textColor);
-                showNotification('Цвет текста подписи изменён', false, 1500);
+
+                const textColor =
+                    colorHexMap[selectedColor] || selectedColor;
+
+                $(this)
+                    .find('.sound-frame__title')
+                    .css('color', textColor);
+
+                showNotification(
+                    'Цвет текста подписи изменён',
+                    false,
+                    1500
+                );
             }
 
             return;
@@ -3823,75 +4512,187 @@ $(function () {
 
         if (selectedColor !== undefined) {
             e.stopPropagation();
+
             frame.borderColor = selectedColor;
-            const borderColor = colorHexMap[selectedColor] || selectedColor;
-            $(this).css('border-color', borderColor);
-            $(this).find('.sound-frame__title').css('border-color', borderColor);
-            showNotification('Цвет границы рамки изменён', false, 1500);
+
+            const borderColor =
+                colorHexMap[selectedColor] || selectedColor;
+
+            $(this).css(
+                'border-color',
+                borderColor
+            );
+
+            $(this)
+                .find('.sound-frame__title')
+                .css(
+                    'border-color',
+                    borderColor
+                );
+
+            showNotification(
+                'Цвет границы рамки изменён',
+                false,
+                1500
+            );
         }
-    }).on('click', '.sound-frame__delete', function (e) {
+    })
+
+    .on('click', '.sound-frame__delete', function (e) {
         e.stopPropagation();
+
         const $frame = $(this).closest('.sound-frame');
         const frameId = $frame.data('id');
+
         $frame.remove();
-        if (allPages[currentTab] && allPages[currentTab].frames) {
+
+        if (
+            allPages[currentTab] &&
+            allPages[currentTab].frames
+        ) {
             delete allPages[currentTab].frames[frameId];
         }
 
-        showNotification('Рамка удалена', false, 1500);
-    }).on('dblclick', '.sound-frame__title .sound-frame__title-text', function (e) {
-        e.stopPropagation();
-        const $textSpan = $(this);
-        const $frame = $textSpan.closest('.sound-frame');
-        const frameId = $frame.data('id');
-        const oldTitle = $textSpan.text();
-        // eslint-disable-next-line no-alert
-        const newTitle = window.prompt('Изменить название группы / рамки:', oldTitle);
+        showNotification(
+            'Рамка удалена',
+            false,
+            1500
+        );
+    })
 
-        if (newTitle && newTitle.trim().length > 0 && newTitle.trim() !== oldTitle) {
-            $textSpan.text(newTitle.trim());
-            if (allPages[currentTab] && allPages[currentTab].frames && allPages[currentTab].frames[frameId]) {
-                allPages[currentTab].frames[frameId].title = newTitle.trim();
+    .on(
+        'dblclick',
+        '.sound-frame__title .sound-frame__title-text',
+        function (e) {
+            e.stopPropagation();
+
+            const $textSpan = $(this);
+            const $frame = $textSpan.closest('.sound-frame');
+            const frameId = $frame.data('id');
+            const oldTitle = $textSpan.text();
+
+            // eslint-disable-next-line no-alert
+            const newTitle = window.prompt(
+                'Изменить название группы / рамки:',
+                oldTitle
+            );
+
+            if (
+                newTitle &&
+                newTitle.trim().length > 0 &&
+                newTitle.trim() !== oldTitle
+            ) {
+                $textSpan.text(newTitle.trim());
+
+                if (
+                    allPages[currentTab] &&
+                    allPages[currentTab].frames &&
+                    allPages[currentTab].frames[frameId]
+                ) {
+                    allPages[currentTab]
+                        .frames[frameId]
+                        .title = newTitle.trim();
+                }
             }
         }
-    }).on('click', '.start-intro', function () {
+    )
+
+    .on('click', '.start-intro', function () {
         startIntro();
-    }).on('click', '.youtube', function () {
-        shell.openExternal('https://www.youtube.com/user/arsenalgrinch');
-    }).on('click', '.discord', function () {
-        shell.openExternal('https://discord.gg/EEkpKp2');
-    }).on('click', '.check-updates', function () {
-        shell.openExternal('https://github.com/n3tman/GrinchPlayer/releases');
-    }).on('click', '.releases', function () {
-        shell.openExternal('https://github.com/n3tman/GrinchPlayer/releases');
-    }).on('click', '.repository', function () {
-        shell.openExternal('https://github.com/n3tman/GrinchPlayer');
-    }).on('click', '.license', function () {
-        shell.openExternal('https://creativecommons.org/licenses/by-nc-sa/4.0/deed.ru');
-    }).on('input', '#volume-slider', function () {
+    })
+
+    .on('click', '.youtube', function () {
+        shell.openExternal(
+            'https://www.youtube.com/user/arsenalgrinch'
+        );
+    })
+
+    .on('click', '.discord', function () {
+        shell.openExternal(
+            'https://discord.gg/EEkpKp2'
+        );
+    })
+
+    .on('click', '.check-updates', function () {
+        shell.openExternal(
+            'https://github.com/n3tman/GrinchPlayer/releases'
+        );
+    })
+
+    .on('click', '.releases', function () {
+        shell.openExternal(
+            'https://github.com/n3tman/GrinchPlayer/releases'
+        );
+    })
+
+    .on('click', '.repository', function () {
+        shell.openExternal(
+            'https://github.com/n3tman/GrinchPlayer'
+        );
+    })
+
+    .on('click', '.license', function () {
+        shell.openExternal(
+            'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.ru'
+        );
+    })
+
+    .on('input', '#volume-slider', function () {
         volume = this.value / 100;
         hp.Howler.volume(volume);
-        showNotification('Громкость: ' + this.value + '%', false, 1500);
-    }).on('click', '.colors > .color', function (e) {
+
+        showNotification(
+            'Громкость: ' + this.value + '%',
+            false,
+            1500
+        );
+    })
+
+    .on('click', '.colors > .color', function (e) {
         const color = e.target.dataset.color;
         const $button = $('#color-choose');
 
         if (selectedColor !== undefined) {
-            $button.removeClass('bg-' + selectedColor);
+            $button.removeClass(
+                'bg-' + selectedColor
+            );
         }
 
         selectedColor = color;
 
         $button.addClass('bg-' + color);
         $button[0]._tippy.hide();
-    }).on('mousedown mouseenter', '.sound-block', function (e) {
-        if (isEditMode && selectedColor !== undefined && $('body').hasClass('brush') && e.buttons === 1) {
+    })
+        // Continue brush painting while moving over blocks
+    // with the left mouse button held down.
+    .on('mouseenter', '.sound-block', function (e) {
+        if (
+            isEditMode &&
+            selectedColor !== undefined &&
+            $('body').hasClass('brush') &&
+            e.buttons === 1
+        ) {
             const hash = e.currentTarget.dataset.hash;
             const $block = $(e.currentTarget);
-            applySingleBlockColor(hash, $block);
+
+            applySingleBlockColor(
+                hash,
+                $block
+            );
         }
     });
 
+    // ==========================================================
+    // SOUND BLOCKS
+    // ==========================================================
+
+    // Normal left mouse button behavior.
+    //
+    // Ctrl + Shift + Left Mouse Button is handled globally
+
+
+
+    
     // ----------- //
     //  Navigator  //
     // ----------- //

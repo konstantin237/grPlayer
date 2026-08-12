@@ -96,9 +96,54 @@
 
         <div class="notification is-success"></div>
 
+        <!-- SOUND RECOVERY POPUP -->
+<div class="modal" id="sound-recovery-popup">
+    <div class="modal-background"></div>
+
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Ошибка воспроизведения</p>
+
+            <button
+                class="delete"
+                id="sound-recovery-popup-close"
+                aria-label="Закрыть">
+            </button>
+        </header>
+
+        <section class="modal-card-body">
+            <p>
+                Некоторые звуки стали недоступны или произошла
+                ошибка воспроизведения.
+            </p>
+
+            <p style="margin-top: 10px;">
+                Выполнить повторный поиск и попытаться
+                восстановить звуки?
+            </p>
+        </section>
+
+        <footer class="modal-card-foot">
+            <button
+                class="button is-success"
+                id="sound-recovery-popup-recover">
+                Выполнить новый поиск
+            </button>
+
+            <button
+                class="button"
+                id="sound-recovery-popup-cancel">
+                Отмена
+            </button>
+        </footer>
+    </div>
+</div>
+
+
         <div class="app__zen-mode-hint">
             Для возврата интерфейса нажмите <b>Ctrl + Shift + F11</b>
         </div>
+        
 
 
         <!-- TABS -->
@@ -150,6 +195,13 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </p>
+
+                <button
+                    class="button is-dark"
+                    id="recover-sounds"
+                    title="Повторно проверить звуки с ошибками">
+                    Повторный поиск звуков
+                </button>
 
             </div>
 
